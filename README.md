@@ -468,6 +468,11 @@ poetry run pytest tests/test_performance.py::test_concurrent_webhook_requests_po
 
 ---
 
+## Авторы
+- [Andrey Zherdetskiy](https://github.com/AndreyZherdetskiy)
+
+---
+
 ## Лицензия
 
 MIT
