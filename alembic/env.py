@@ -17,8 +17,13 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import application metadata for autogenerate
-from app.db.base import Base  # type: ignore
 from app.core.config import get_settings  # type: ignore
+from app.db.base import Base  # type: ignore
+# Важно: импортировать модели, чтобы metadata содержала таблицы для autogenerate
+import app.models  # noqa: F401
+
+# Импортируем типы данных для использования в миграциях
+from app.db.types import SafeMoney  # type: ignore
 
 target_metadata = Base.metadata
 
@@ -36,17 +41,16 @@ def run_migrations_offline() -> None:
     here as well.  By skipping the Engine creation
     we don't even need a DBAPI to be available.
 
-    Calls to context.execute() here emit the given string to the
-    script output.
+    Calls to context.execute() here emit the given string to the script output.
 
     """
     settings = get_settings()
-    url = settings.sync_database_url
+    url = settings.database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        dialect_opts={'paramstyle': 'named'},
     )
 
     with context.begin_transaction():
@@ -65,11 +69,10 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
-
     settings = get_settings()
     section = config.get_section(config.config_ini_section, {})
-    section["sqlalchemy.url"] = settings.sync_database_url
-    connectable = async_engine_from_config(section, prefix="sqlalchemy.", poolclass=pool.NullPool)
+    section['sqlalchemy.url'] = settings.database_url
+    connectable = async_engine_from_config(section, prefix='sqlalchemy.', poolclass=pool.NullPool)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
@@ -79,7 +82,6 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-
     asyncio.run(run_async_migrations())
 
 
