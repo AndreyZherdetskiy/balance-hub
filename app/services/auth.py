@@ -1,29 +1,52 @@
-"""Authentication service functions."""
+"""Бизнес-логика для аутентификации пользователей."""
+
 from __future__ import annotations
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.constants import ErrorMessages
+from app.core.errors import AuthError
 from app.core.security import create_access_token, verify_password
-from app.models.user import User
+from app.crud.users import CRUDUser
+from app.schemas import LoginRequest
 
 
-async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
-    """Authenticate user by email and password."""
-    result = await db.execute(select(User).where(User.email == email))
-    user = result.scalar_one_or_none()
-    if not user:
-        return None
-    if not verify_password(password, user.hashed_password):
-        return None
-    return user
+class AuthService:
+    """Сервис для аутентификации пользователей."""
 
+    def __init__(self, users_crud: CRUDUser):
+        """Инициализирует сервис.
 
-async def login(db: AsyncSession, email: str, password: str) -> str:
-    """Return JWT token if credentials are valid."""
-    settings = get_settings()
-    user = await authenticate_user(db, email, password)
-    if not user:
-        raise ValueError('Invalid credentials')
-    return create_access_token(user.id, settings.jwt_secret, settings.jwt_algorithm, settings.jwt_expires_minutes)
+        Args:
+            users_crud: CRUD для пользователей.
+        """
+        self.users_crud = users_crud
+
+    async def authenticate_user(
+        self, db: AsyncSession, login_data: LoginRequest
+    ) -> str:
+        """Аутентифицирует пользователя и возвращает JWT-токен.
+
+        Args:
+            db (AsyncSession): Сессия БД.
+            login_data (LoginRequest): Данные для входа (email и пароль).
+
+        Returns:
+            str: Подписанный JWT-токен.
+
+        Raises:
+            AuthError: Если пара логин/пароль неверна.
+        """
+        user = await self.users_crud.get_by_email(db, login_data.email)
+        if not user or not verify_password(login_data.password, user.hashed_password):
+            raise AuthError(ErrorMessages.INVALID_CREDENTIALS)
+
+        settings = get_settings()
+        token = create_access_token(
+            user.id,
+            settings.jwt_secret,
+            settings.jwt_algorithm,
+            settings.jwt_expires_minutes,
+        )
+        return token

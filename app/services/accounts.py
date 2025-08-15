@@ -1,37 +1,79 @@
-"""Account service operations."""
+"""Бизнес-логика для работы со счетами пользователей."""
+
 from __future__ import annotations
 
-from decimal import Decimal
+from typing import List
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.constants import ErrorMessages, PaginationParams
+from app.core.errors import NotFoundError
+from app.crud.accounts import CRUDAccount
+from app.crud.users import CRUDUser
 from app.models.account import Account
 
 
-async def get_or_create_account(db: AsyncSession, user_id: int, account_id: int | None = None) -> Account:
-    """Get existing account by id or create a new account for a user."""
-    if account_id is not None:
-        result = await db.execute(select(Account).where(Account.id == account_id, Account.user_id == user_id))
-        account = result.scalar_one_or_none()
-        if account:
-            return account
-    account = Account(user_id=user_id)
-    db.add(account)
-    await db.commit()
-    await db.refresh(account)
-    return account
+class AccountService:
+    """Сервис для работы со счетами пользователей."""
 
+    def __init__(self, accounts_crud: CRUDAccount, users_crud: CRUDUser):
+        """Инициализирует сервис.
 
-async def list_user_accounts(db: AsyncSession, user_id: int) -> list[Account]:
-    """List accounts for a given user."""
-    result = await db.execute(select(Account).where(Account.user_id == user_id))
-    return result.scalars().all()
+        Args:
+            accounts_crud (CRUDAccount): CRUD для счетов.
+            users_crud (CRUDUser): CRUD для пользователей.
+        """
+        self.accounts_crud = accounts_crud
+        self.users_crud = users_crud
 
+    async def get_user_accounts(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        limit: int = PaginationParams.DEFAULT_LIMIT,
+        offset: int = PaginationParams.DEFAULT_OFFSET,
+    ) -> List[Account]:
+        """Возвращает список счетов пользователя.
 
-async def apply_balance_change(db: AsyncSession, account: Account, amount: Decimal) -> Account:
-    """Apply a balance change to an account."""
-    account.balance = (account.balance or Decimal('0.00')) + amount
-    await db.commit()
-    await db.refresh(account)
-    return account
+        Args:
+            db (AsyncSession): Сессия БД.
+            user_id (int): Идентификатор пользователя.
+            limit (int): Максимум записей.
+            offset (int): Смещение.
+
+        Returns:
+            list[Account]: Список счетов пользователя.
+
+        Raises:
+            NotFoundError: Если пользователь не найден.
+        """
+        user = await self.users_crud.get(db, user_id)
+        if not user:
+            raise NotFoundError(ErrorMessages.USER_NOT_FOUND)
+
+        accounts = await self.accounts_crud.list_for_user_paginated(
+            db, user_id, limit=limit, offset=offset
+        )
+        return accounts
+
+    async def create_account_for_user(self, db: AsyncSession, user_id: int) -> Account:
+        """Создаёт новый счёт для пользователя.
+
+        Args:
+            db (AsyncSession): Сессия БД.
+            user_id (int): Идентификатор пользователя.
+
+        Returns:
+            Account: Созданный счёт.
+
+        Raises:
+            NotFoundError: Если пользователь не найден.
+        """
+        user = await self.users_crud.get(db, user_id)
+        if not user:
+            raise NotFoundError(ErrorMessages.USER_NOT_FOUND)
+
+        account = await self.accounts_crud.create_for_user(db, user_id)
+        await db.commit()
+        await db.refresh(account)
+        return account

@@ -1,66 +1,151 @@
-"""User service: CRUD operations."""
+"""Бизнес-логика для работы с пользователями."""
+
 from __future__ import annotations
 
-from typing import Iterable
+from typing import List
 
-from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_password
-from app.models.user import User
+from app.core.constants import ErrorMessages, PaginationParams
+from app.core.errors import NotFoundError, ValidationError
+from app.crud.users import CRUDUser
+from app.models import User
+from app.schemas import UserCreate, UserUpdate
+from app.validators.async_ import UserAsyncValidator
 
 
-async def create_user(db: AsyncSession, email: str, full_name: str, password: str, is_admin: bool = False) -> User:
-    """Create a new user."""
-    user = User(email=email, full_name=full_name, hashed_password=hash_password(password), is_admin=is_admin)
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
+class UserService:
+    """Сервис для работы с пользователями."""
 
+    def __init__(
+        self, users_crud: CRUDUser, user_validator: UserAsyncValidator | None = None
+    ):
+        """Инициализирует сервис.
 
-async def get_user(db: AsyncSession, user_id: int) -> User | None:
-    """Get a user by id."""
-    result = await db.execute(select(User).where(User.id == user_id))
-    return result.scalar_one_or_none()
+        Args:
+            users_crud: CRUD для пользователей.
+        """
+        self.users_crud = users_crud
+        self.user_validator = user_validator or UserAsyncValidator(users_crud)
 
+    async def create_user(self, db: AsyncSession, user_data: UserCreate) -> User:
+        """Создаёт нового пользователя.
 
-async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
-    """Get a user by email."""
-    result = await db.execute(select(User).where(User.email == email))
-    return result.scalar_one_or_none()
+        Args:
+            db (AsyncSession): Сессия БД.
+            user_data (UserCreate): Данные пользователя.
 
+        Returns:
+            User: Созданный пользователь.
 
-async def list_users(db: AsyncSession) -> Iterable[User]:
-    """List all users."""
-    result = await db.execute(select(User))
-    return result.scalars().all()
+        Raises:
+            ValidationError: Если email уже используется.
+        """
+        # Асинхронные инварианты
+        await self.user_validator.assert_email_unique(db, user_data.email)
 
+        try:
+            user = await self.users_crud.create(
+                db,
+                email=user_data.email,
+                full_name=user_data.full_name,
+                password=user_data.password,
+                is_admin=user_data.is_admin,
+            )
+            await db.commit()
+        except IntegrityError:
+            # Дублируем инвариант на случай гонок: уникальный индекс на email
+            await db.rollback()
+            raise ValidationError(ErrorMessages.EMAIL_ALREADY_EXISTS)
 
-async def update_user(
-    db: AsyncSession,
-    user: User,
-    *,
-    email: str | None = None,
-    full_name: str | None = None,
-    password: str | None = None,
-    is_admin: bool | None = None,
-) -> User:
-    """Update an existing user."""
-    if email is not None:
-        user.email = email
-    if full_name is not None:
-        user.full_name = full_name
-    if password is not None:
-        user.hashed_password = hash_password(password)
-    if is_admin is not None:
-        user.is_admin = is_admin
-    await db.commit()
-    await db.refresh(user)
-    return user
+        await db.refresh(user)
+        return user
 
+    async def get_all_users(
+        self,
+        db: AsyncSession,
+        limit: int = PaginationParams.DEFAULT_LIMIT,
+        offset: int = PaginationParams.DEFAULT_OFFSET,
+    ) -> List[User]:
+        """Возвращает список всех пользователей.
 
-async def delete_user(db: AsyncSession, user: User) -> None:
-    """Delete a user."""
-    await db.delete(user)
-    await db.commit()
+        Args:
+            db (AsyncSession): Сессия БД.
+            limit (int): Максимум записей.
+            offset (int): Смещение.
+
+        Returns:
+            list[User]: Список пользователей.
+        """
+        users = await self.users_crud.list_all_paginated(db, limit=limit, offset=offset)
+        return list(users)
+
+    async def get_user_by_id(self, db: AsyncSession, user_id: int) -> User:
+        """Возвращает пользователя по идентификатору.
+
+        Args:
+            db (AsyncSession): Сессия БД.
+            user_id (int): Идентификатор пользователя.
+
+        Returns:
+            User: Пользователь.
+
+        Raises:
+            NotFoundError: Если пользователь не найден.
+        """
+        user = await self.user_validator.get_user_or_error(db, user_id)
+        return user
+
+    async def update_user(
+        self, db: AsyncSession, user_id: int, user_data: UserUpdate
+    ) -> User:
+        """Обновляет данные существующего пользователя.
+
+        Args:
+            db (AsyncSession): Сессия БД.
+            user_id (int): Идентификатор пользователя.
+            user_data (UserUpdate): Поля для обновления.
+
+        Returns:
+            User: Обновлённый пользователь.
+
+        Raises:
+            NotFoundError: Если пользователь не найден.
+            ValidationError: Если новый email уже используется.
+        """
+        user = await self.users_crud.get(db, user_id)
+        if not user:
+            raise NotFoundError(ErrorMessages.USER_NOT_FOUND)
+
+        # Если обновляем email — проверить уникальность с исключением текущего пользователя
+        if user_data.email is not None:
+            await self.user_validator.assert_email_unique(
+                db, user_data.email, exclude_user_id=user_id
+            )
+
+        user = await self.users_crud.update(
+            db,
+            user,
+            email=user_data.email,
+            full_name=user_data.full_name,
+            password=user_data.password,
+            is_admin=user_data.is_admin,
+        )
+        await db.commit()
+        await db.refresh(user)
+        return user
+
+    async def delete_user(self, db: AsyncSession, user_id: int) -> None:
+        """Удаляет пользователя по идентификатору.
+
+        Args:
+            db (AsyncSession): Сессия БД.
+            user_id (int): Идентификатор пользователя.
+
+        Raises:
+            NotFoundError: Если пользователь не найден.
+        """
+        user = await self.user_validator.get_user_or_error(db, user_id)
+        await self.users_crud.delete(db, user)
+        await db.commit()
