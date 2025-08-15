@@ -1,56 +1,150 @@
-"""Pydantic schemas for User."""
+"""Pydantic-схемы для пользователя."""
+
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.core.constants.field_constraints import FieldConstraints
+from app.core.constants.regex import RegexPatterns
 
 
-class UserBase(BaseModel):
-    """Base User fields."""
+class BaseEmailFieldMixin(BaseModel):
+    """Базовый миксин для опционального поля email с валидацией."""
 
-    email: EmailStr
-    full_name: str
+    email: EmailStr | None = Field(
+        default=None,
+        min_length=FieldConstraints.USER_EMAIL_MIN_LENGTH,
+        max_length=FieldConstraints.USER_EMAIL_MAX_LENGTH,
+    )
 
 
-class UserCreate(UserBase):
-    """Schema for creating a user (admin only)."""
+class BasePasswordFieldMixin(BaseModel):
+    """Базовый миксин для опционального поля password с валидацией."""
 
-    password: str
+    password: str | None = Field(
+        default=None,
+        min_length=FieldConstraints.PASSWORD_MIN_LENGTH,
+        max_length=FieldConstraints.PASSWORD_MAX_LENGTH,
+    )
+
+
+class BaseFullNameFieldMixin(BaseModel):
+    """Базовый миксин для опционального поля full_name с валидацией."""
+
+    full_name: str | None = Field(
+        default=None,
+        min_length=FieldConstraints.USER_FULL_NAME_MIN_LENGTH,
+        max_length=FieldConstraints.USER_FULL_NAME_MAX_LENGTH,
+        pattern=RegexPatterns.FULL_NAME,
+    )
+
+
+class EmailFieldMixin(BaseEmailFieldMixin):
+    """Миксин для обязательного поля email с валидацией."""
+
+    email: EmailStr = Field(
+        min_length=FieldConstraints.USER_EMAIL_MIN_LENGTH,
+        max_length=FieldConstraints.USER_EMAIL_MAX_LENGTH,
+    )
+
+
+class PasswordFieldMixin(BasePasswordFieldMixin):
+    """Миксин для обязательного поля password с валидацией."""
+
+    password: str = Field(
+        min_length=FieldConstraints.PASSWORD_MIN_LENGTH,
+        max_length=FieldConstraints.PASSWORD_MAX_LENGTH,
+    )
+
+
+class FullNameFieldMixin(BaseFullNameFieldMixin):
+    """Миксин для обязательного поля full_name с валидацией."""
+
+    full_name: str = Field(
+        min_length=FieldConstraints.USER_FULL_NAME_MIN_LENGTH,
+        max_length=FieldConstraints.USER_FULL_NAME_MAX_LENGTH,
+        pattern=RegexPatterns.FULL_NAME,
+    )
+
+
+class UserBase(EmailFieldMixin, FullNameFieldMixin):
+    """Базовые поля пользователя."""
+
+
+class UserCreate(UserBase, PasswordFieldMixin):
+    """Схема создания пользователя (админ)."""
+
     is_admin: bool = False
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "email": "john@example.com",
+                    "full_name": "John Doe",
+                    "password": "StrongPassw0rd!",
+                    "is_admin": False,
+                }
+            ]
+        }
+    )
 
-class UserUpdate(BaseModel):
-    """Schema for updating a user (admin only)."""
 
-    email: EmailStr | None = None
-    full_name: str | None = None
-    password: str | None = None
+class UserUpdate(BaseEmailFieldMixin, BaseFullNameFieldMixin, BasePasswordFieldMixin):
+    """Схема обновления пользователя (админ)."""
+
     is_admin: bool | None = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"email": "newmail@example.com", "full_name": "New Name"}]
+        }
+    )
 
 
 class UserPublic(UserBase):
-    """Public User representation."""
+    """Публичное представление пользователя."""
 
     id: int
+    is_admin: bool
 
-    class Config:
-        from_attributes = True
-
-
-class UserMe(UserPublic):
-    """Current user representation."""
-
-    pass
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 1,
+                    "email": "user@example.com",
+                    "full_name": "Test User",
+                    "is_admin": False,
+                }
+            ]
+        },
+    )
 
 
 class Token(BaseModel):
-    """JWT token response."""
+    """Ответ с JWT токеном."""
 
     access_token: str
-    token_type: str = 'bearer'
+    token_type: str = "bearer"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"access_token": "eyJhbGciOi...signature", "token_type": "bearer"}
+            ]
+        }
+    )
 
 
-class LoginRequest(BaseModel):
-    """Login payload."""
+class LoginRequest(EmailFieldMixin, PasswordFieldMixin):
+    """Запрос на вход."""
 
-    email: EmailStr
-    password: str
+    pass
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"email": "user@example.com", "password": "Password123!"}]
+        }
+    )
