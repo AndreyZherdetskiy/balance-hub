@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from app.core.constants import ErrorMessages, RegexPatterns, FieldConstraints
+from app.core.constants import ErrorMessages, FieldConstraints, RegexPatterns
 from app.core.errors import ValidationError
 from app.schemas import UserCreate, UserUpdate
 

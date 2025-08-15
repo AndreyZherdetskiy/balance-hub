@@ -18,9 +18,7 @@ from app.validators.async_ import UserAsyncValidator
 class UserService:
     """Сервис для работы с пользователями."""
 
-    def __init__(
-        self, users_crud: CRUDUser, user_validator: UserAsyncValidator | None = None
-    ):
+    def __init__(self, users_crud: CRUDUser, user_validator: UserAsyncValidator | None = None):
         """Инициализирует сервис.
 
         Args:
@@ -97,9 +95,7 @@ class UserService:
         user = await self.user_validator.get_user_or_error(db, user_id)
         return user
 
-    async def update_user(
-        self, db: AsyncSession, user_id: int, user_data: UserUpdate
-    ) -> User:
+    async def update_user(self, db: AsyncSession, user_id: int, user_data: UserUpdate) -> User:
         """Обновляет данные существующего пользователя.
 
         Args:

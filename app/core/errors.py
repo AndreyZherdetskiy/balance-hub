@@ -62,9 +62,7 @@ def to_http_exc(err: DomainError) -> HTTPException:
         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
     if isinstance(err, ServiceUnavailableError):
         detail = str(err) if str(err) else ErrorMessages.DB_CONNECTION_ERROR
-        return HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail
-        )
+        return HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
     if isinstance(err, DuplicateTransactionError):
         detail = str(err) if str(err) else ErrorMessages.TRANSACTION_ALREADY_PROCESSED
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)

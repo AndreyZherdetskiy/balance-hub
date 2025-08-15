@@ -4,4 +4,5 @@ from __future__ import annotations
 
 from .users import UserAsyncValidator
 
-__all__ = ["UserAsyncValidator"]
+
+__all__ = ['UserAsyncValidator']

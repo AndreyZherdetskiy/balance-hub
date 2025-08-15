@@ -22,14 +22,12 @@ if TYPE_CHECKING:
 class Account(Base):
     """ORM-модель счёта пользователя с балансом."""
 
-    __tablename__ = "accounts"
-    __table_args__ = (
-        CheckConstraint("balance >= 0", name="ck_accounts_balance_nonnegative"),
-    )
+    __tablename__ = 'accounts'
+    __table_args__ = (CheckConstraint('balance >= 0', name='ck_accounts_balance_nonnegative'),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True
     )
     balance: Mapped[Decimal] = mapped_column(
         SafeMoney(), default=MonetaryConstants.ZERO_TWO_PLACES, nullable=False
@@ -38,7 +36,7 @@ class Account(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user: Mapped["User"] = relationship("User", back_populates="accounts")
-    payments: Mapped[list["Payment"]] = relationship(
-        "Payment", back_populates="account", cascade="all,delete"
+    user: Mapped['User'] = relationship('User', back_populates='accounts')
+    payments: Mapped[list['Payment']] = relationship(
+        'Payment', back_populates='account', cascade='all,delete'
     )

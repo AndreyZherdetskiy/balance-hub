@@ -114,9 +114,9 @@ async def admin_list_users(
         le=PaginationParams.MAX_LIMIT,
         description=PaginationParamDescriptions.LIMIT,
         examples={
-            "default": {
-                "summary": "Значение по умолчанию",
-                "value": PaginationParams.DEFAULT_LIMIT,
+            'default': {
+                'summary': 'Значение по умолчанию',
+                'value': PaginationParams.DEFAULT_LIMIT,
             }
         },
     ),
@@ -125,9 +125,9 @@ async def admin_list_users(
         ge=PaginationParams.OFFSET,
         description=PaginationParamDescriptions.OFFSET,
         examples={
-            "default": {
-                "summary": "Значение по умолчанию",
-                "value": PaginationParams.DEFAULT_OFFSET,
+            'default': {
+                'summary': 'Значение по умолчанию',
+                'value': PaginationParams.DEFAULT_OFFSET,
             }
         },
     ),

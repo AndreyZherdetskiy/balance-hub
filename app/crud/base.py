@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-ModelT = TypeVar("ModelT")
+ModelT = TypeVar('ModelT')
 
 
 class CRUDBase(Generic[ModelT]):

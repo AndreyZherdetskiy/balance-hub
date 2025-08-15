@@ -23,9 +23,7 @@ class AuthService:
         """
         self.users_crud = users_crud
 
-    async def authenticate_user(
-        self, db: AsyncSession, login_data: LoginRequest
-    ) -> str:
+    async def authenticate_user(self, db: AsyncSession, login_data: LoginRequest) -> str:
         """Аутентифицирует пользователя и возвращает JWT-токен.
 
         Args:

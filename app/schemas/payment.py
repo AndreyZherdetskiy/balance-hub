@@ -21,7 +21,7 @@ class PaymentBase(BaseModel):
     account_id: int
     amount: Decimal = Field(gt=MonetaryConstants.ZERO)
 
-    @field_validator("amount")
+    @field_validator('amount')
     @classmethod
     def normalize_amount(cls, v: Decimal) -> Decimal:
         """Нормализует сумму до двух знаков после запятой.
@@ -43,13 +43,13 @@ class PaymentPublic(PaymentBase):
     model_config = ConfigDict(
         from_attributes=True,
         json_schema_extra={
-            "examples": [
+            'examples': [
                 {
-                    "id": 10,
-                    "transaction_id": "5eae174f-7cd0-472c-bd36-35660f00132b",
-                    "user_id": 1,
-                    "account_id": 1,
-                    "amount": "100.00",
+                    'id': 10,
+                    'transaction_id': '5eae174f-7cd0-472c-bd36-35660f00132b',
+                    'user_id': 1,
+                    'account_id': 1,
+                    'amount': '100.00',
                 }
             ]
         },
@@ -63,14 +63,14 @@ class WebhookPayment(PaymentBase):
 
     model_config = ConfigDict(
         json_schema_extra={
-            "examples": [
+            'examples': [
                 {
-                    "transaction_id": "5eae174f-7cd0-472c-bd36-35660f00132b",
-                    "user_id": 1,
-                    "account_id": 1,
-                    "amount": 100,
-                    "signature": (
-                        "7b47e41efe564a062029da3367bde8844bea0fb049f894687cee5d57f2858bc8"
+                    'transaction_id': '5eae174f-7cd0-472c-bd36-35660f00132b',
+                    'user_id': 1,
+                    'account_id': 1,
+                    'amount': 100,
+                    'signature': (
+                        '7b47e41efe564a062029da3367bde8844bea0fb049f894687cee5d57f2858bc8'
                     ),
                 }
             ]

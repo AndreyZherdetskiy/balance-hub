@@ -29,5 +29,5 @@ def compute_signature(
         str: Подпись SHA256 в hex-представлении.
     """
     normalized_amount = amount.quantize(MonetaryConstants.ONE_CENT)
-    payload = f"{account_id}{normalized_amount}{transaction_id}{user_id}{secret_key}"
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    payload = f'{account_id}{normalized_amount}{transaction_id}{user_id}{secret_key}'
+    return hashlib.sha256(payload.encode('utf-8')).hexdigest()

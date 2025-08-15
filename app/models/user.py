@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class User(Base):
     """ORM-модель пользователя приложения (обычный или администратор)."""
 
-    __tablename__ = "users"
+    __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     email: Mapped[str] = mapped_column(
@@ -40,9 +40,9 @@ class User(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    accounts: Mapped[list["Account"]] = relationship(
-        "Account", back_populates="user", cascade="all,delete"
+    accounts: Mapped[list['Account']] = relationship(
+        'Account', back_populates='user', cascade='all,delete'
     )
-    payments: Mapped[list["Payment"]] = relationship(
-        "Payment", back_populates="user", cascade="all,delete"
+    payments: Mapped[list['Payment']] = relationship(
+        'Payment', back_populates='user', cascade='all,delete'
     )

@@ -20,9 +20,7 @@ class CRUDPayment(CRUDBase[Payment]):
         """
         super().__init__(Payment)
 
-    async def get_by_transaction(
-        self, db: AsyncSession, transaction_id: str
-    ) -> Payment | None:
+    async def get_by_transaction(self, db: AsyncSession, transaction_id: str) -> Payment | None:
         """Возвращает платёж по идентификатору транзакции.
 
         Args:
@@ -32,9 +30,7 @@ class CRUDPayment(CRUDBase[Payment]):
         Returns:
             Payment | None: Платёж или None.
         """
-        result = await db.execute(
-            select(Payment).where(Payment.transaction_id == transaction_id)
-        )
+        result = await db.execute(select(Payment).where(Payment.transaction_id == transaction_id))
         return result.scalar_one_or_none()
 
     async def list_for_user(self, db: AsyncSession, user_id: int) -> list[Payment]:
@@ -65,10 +61,7 @@ class CRUDPayment(CRUDBase[Payment]):
             list[Payment]: Платежи пользователя.
         """
         result = await db.execute(
-            select(Payment)
-            .where(Payment.user_id == user_id)
-            .limit(limit)
-            .offset(offset)
+            select(Payment).where(Payment.user_id == user_id).limit(limit).offset(offset)
         )
         return result.scalars().all()
 

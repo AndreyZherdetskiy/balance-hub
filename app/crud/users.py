@@ -112,9 +112,7 @@ class CRUDUser(CRUDBase[User]):
         """
         return await super().list_all(db)
 
-    async def list_all_paginated(
-        self, db: AsyncSession, *, limit: int, offset: int
-    ) -> list[User]:
+    async def list_all_paginated(self, db: AsyncSession, *, limit: int, offset: int) -> list[User]:
         """Возвращает список пользователей с пагинацией.
 
         Args:

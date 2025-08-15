@@ -16,6 +16,4 @@ class ErrorResponse(BaseModel):
 
     detail: str
 
-    model_config = ConfigDict(
-        json_schema_extra={"examples": [{"detail": "Сообщение об ошибке"}]}
-    )
+    model_config = ConfigDict(json_schema_extra={'examples': [{'detail': 'Сообщение об ошибке'}]})

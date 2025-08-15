@@ -35,7 +35,7 @@ async def health_app() -> dict:
         dict: Краткая информация о состоянии приложения c именем и режимом `debug`.
     """
     settings = get_settings()
-    return {"status": "ok", "app": settings.app_name, "debug": settings.debug}
+    return {'status': 'ok', 'app': settings.app_name, 'debug': settings.debug}
 
 
 @router.get(
@@ -61,8 +61,8 @@ async def health_db(db: AsyncSession = Depends(get_db_session)) -> dict:
         HTTPException: 503 если подключение к БД недоступно.
     """
     try:
-        await db.execute(text("SELECT 1"))
+        await db.execute(text('SELECT 1'))
     except Exception as exc:  # noqa: BLE001 - в health допускается широкий перехват
         http_exc = to_http_exc(ServiceUnavailableError())
         raise http_exc from exc
-    return {"status": "ok"}
+    return {'status': 'ok'}

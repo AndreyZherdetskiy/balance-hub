@@ -47,9 +47,9 @@ async def list_my_payments(
         le=PaginationParams.MAX_LIMIT,
         description=PaginationParamDescriptions.LIMIT,
         examples={
-            "default": {
-                "summary": "Значение по умолчанию",
-                "value": PaginationParams.DEFAULT_LIMIT,
+            'default': {
+                'summary': 'Значение по умолчанию',
+                'value': PaginationParams.DEFAULT_LIMIT,
             }
         },
     ),
@@ -58,9 +58,9 @@ async def list_my_payments(
         ge=PaginationParams.OFFSET,
         description=PaginationParamDescriptions.OFFSET,
         examples={
-            "default": {
-                "summary": "Значение по умолчанию",
-                "value": PaginationParams.DEFAULT_OFFSET,
+            'default': {
+                'summary': 'Значение по умолчанию',
+                'value': PaginationParams.DEFAULT_OFFSET,
             }
         },
     ),
@@ -83,7 +83,5 @@ async def list_my_payments(
     """
     AccountValidator.validate_pagination_params(limit, offset)
 
-    payments = await payment_service.get_user_payments(
-        db, current_user.id, limit, offset
-    )
+    payments = await payment_service.get_user_payments(db, current_user.id, limit, offset)
     return [PaymentPublic.model_validate(p) for p in payments]

@@ -14,7 +14,7 @@ class AccountBase(BaseModel):
 
     balance: Decimal = Field(ge=MonetaryConstants.ZERO)
 
-    @field_validator("balance")
+    @field_validator('balance')
     @classmethod
     def normalize_balance(cls, v: Decimal) -> Decimal:
         """Нормализует баланс до двух знаков после запятой.
@@ -33,7 +33,7 @@ class AccountCreate(BaseModel):
 
     user_id: int
 
-    model_config = ConfigDict(json_schema_extra={"examples": [{"user_id": 1}]})
+    model_config = ConfigDict(json_schema_extra={'examples': [{'user_id': 1}]})
 
 
 class AccountPublic(AccountBase):
@@ -44,5 +44,5 @@ class AccountPublic(AccountBase):
 
     model_config = ConfigDict(
         from_attributes=True,
-        json_schema_extra={"examples": [{"id": 1, "user_id": 1, "balance": "100.00"}]},
+        json_schema_extra={'examples': [{'id': 1, 'user_id': 1, 'balance': '100.00'}]},
     )

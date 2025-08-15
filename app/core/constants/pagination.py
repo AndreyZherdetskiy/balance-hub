@@ -16,5 +16,5 @@ class PaginationParams:
 class PaginationParamDescriptions:
     """Описание параметров пагинации для OpenAPI."""
 
-    LIMIT = "Максимум записей"
-    OFFSET = "Смещение"
+    LIMIT = 'Максимум записей'
+    OFFSET = 'Смещение'

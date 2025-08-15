@@ -14,11 +14,7 @@ from app.core.constants import (
     PaginationParamDescriptions,
     PaginationParams,
 )
-from app.core.deps import (
-    get_account_service,
-    get_current_admin,
-    require_self_or_admin_user,
-)
+from app.core.deps import get_account_service, get_current_admin, require_self_or_admin_user
 from app.db.session import get_db_session
 from app.schemas import AccountPublic
 from app.services import AccountService
@@ -53,9 +49,9 @@ async def list_user_accounts_abac(
         le=PaginationParams.MAX_LIMIT,
         description=PaginationParamDescriptions.LIMIT,
         examples={
-            "default": {
-                "summary": "Значение по умолчанию",
-                "value": PaginationParams.DEFAULT_LIMIT,
+            'default': {
+                'summary': 'Значение по умолчанию',
+                'value': PaginationParams.DEFAULT_LIMIT,
             }
         },
     ),
@@ -64,9 +60,9 @@ async def list_user_accounts_abac(
         ge=PaginationParams.OFFSET,
         description=PaginationParamDescriptions.OFFSET,
         examples={
-            "default": {
-                "summary": "Значение по умолчанию",
-                "value": PaginationParams.DEFAULT_OFFSET,
+            'default': {
+                'summary': 'Значение по умолчанию',
+                'value': PaginationParams.DEFAULT_OFFSET,
             }
         },
     ),

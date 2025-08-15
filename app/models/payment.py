@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class Payment(Base):
     """ORM-модель платежа пополнения счёта пользователя."""
 
-    __tablename__ = "payments"
+    __tablename__ = 'payments'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     transaction_id: Mapped[str] = mapped_column(
@@ -32,15 +32,15 @@ class Payment(Base):
         index=True,
     )
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True
     )
     account_id: Mapped[int] = mapped_column(
-        ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey('accounts.id', ondelete='CASCADE'), nullable=False, index=True
     )
     amount: Mapped[Decimal] = mapped_column(SafeMoney(), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user: Mapped["User"] = relationship("User", back_populates="payments")
-    account: Mapped["Account"] = relationship("Account", back_populates="payments")
+    user: Mapped['User'] = relationship('User', back_populates='payments')
+    account: Mapped['Account'] = relationship('Account', back_populates='payments')

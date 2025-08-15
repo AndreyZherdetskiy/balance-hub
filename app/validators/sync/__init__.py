@@ -6,4 +6,5 @@ from .accounts import AccountValidator
 from .users import UserValidator
 from .webhook import WebhookValidator
 
-__all__ = ["AccountValidator", "UserValidator", "WebhookValidator"]
+
+__all__ = ['AccountValidator', 'UserValidator', 'WebhookValidator']

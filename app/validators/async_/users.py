@@ -32,7 +32,8 @@ class UserAsyncValidator:
         Args:
             db (AsyncSession): Сессия БД.
             email (str): Проверяемый email.
-            exclude_user_id (Optional[int]): Исключить пользователя с этим ID из проверки (для update).
+            exclude_user_id (Optional[int]): Исключить пользователя с этим ID из проверки
+            (для update).
 
         Raises:
             ValidationError: Если email уже используется другим пользователем.

@@ -9,7 +9,7 @@ from jose import jwt
 from passlib.context import CryptContext
 
 
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
 def hash_password(password: str) -> str:
@@ -54,8 +54,8 @@ def create_access_token(
     now = datetime.now(tz=timezone.utc)
     expire = now + timedelta(minutes=expires_minutes)
     to_encode: dict[str, Any] = {
-        "sub": str(subject),
-        "iat": int(now.timestamp()),
-        "exp": int(expire.timestamp()),
+        'sub': str(subject),
+        'iat': int(now.timestamp()),
+        'exp': int(expire.timestamp()),
     }
     return jwt.encode(to_encode, secret, algorithm=algorithm)

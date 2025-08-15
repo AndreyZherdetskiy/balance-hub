@@ -66,10 +66,7 @@ class CRUDAccount(CRUDBase[Account]):
             list[Account]: Счета пользователя.
         """
         result = await db.execute(
-            select(Account)
-            .where(Account.user_id == user_id)
-            .limit(limit)
-            .offset(offset)
+            select(Account).where(Account.user_id == user_id).limit(limit).offset(offset)
         )
         return result.scalars().all()
 

@@ -35,10 +35,8 @@ class SafeMoney(TypeDecorator):
         Returns:
             TypeDescriptor: Реализация типа для СУБД.
         """
-        if dialect.name == "sqlite":
-            return dialect.type_descriptor(
-                String(MonetaryConstants.MONEY_TEXT_MAX_LENGTH)
-            )
+        if dialect.name == 'sqlite':
+            return dialect.type_descriptor(String(MonetaryConstants.MONEY_TEXT_MAX_LENGTH))
         return dialect.type_descriptor(
             Numeric(
                 MonetaryConstants.DECIMAL_PRECISION,
@@ -60,8 +58,8 @@ class SafeMoney(TypeDecorator):
         if value is None:
             return None
         quantized = Decimal(value).quantize(MonetaryConstants.ONE_CENT)
-        if dialect.name == "sqlite":
-            return format(quantized, "f")
+        if dialect.name == 'sqlite':
+            return format(quantized, 'f')
         return quantized
 
     def process_result_value(self, value, dialect):
@@ -76,6 +74,6 @@ class SafeMoney(TypeDecorator):
         """
         if value is None:
             return None
-        if dialect.name == "sqlite":
+        if dialect.name == 'sqlite':
             return Decimal(value)
         return value

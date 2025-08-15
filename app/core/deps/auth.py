@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
-from app.core.constants.auth import AuthConstants
 from app.core.constants.api_paths import AuthPaths
+from app.core.constants.auth import AuthConstants
 from app.core.constants.error_messages import ErrorMessages
 from app.db.session import get_db_session
 from app.models import User
@@ -42,13 +42,11 @@ async def get_current_user(
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=ErrorMessages.NOT_AUTHENTICATED,
-        headers={"WWW-Authenticate": AuthConstants.WWW_AUTHENTICATE_SCHEME},
+        headers={'WWW-Authenticate': AuthConstants.WWW_AUTHENTICATE_SCHEME},
     )
     try:
-        payload = jwt.decode(
-            token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
-        )
-        subject: str | None = payload.get("sub")
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        subject: str | None = payload.get('sub')
         if subject is None:
             raise credentials_exception
         user_id = int(subject)
@@ -75,7 +73,5 @@ async def get_current_admin(user: User = Depends(get_current_user)) -> User:
         HTTPException: 403 если пользователь не является администратором.
     """
     if not user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=ErrorMessages.FORBIDDEN
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=ErrorMessages.FORBIDDEN)
     return user

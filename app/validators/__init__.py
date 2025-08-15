@@ -13,4 +13,4 @@ from .sync.users import UserValidator
 from .sync.webhook import WebhookValidator
 
 
-__all__ = ["AccountValidator", "UserValidator", "WebhookValidator"]
+__all__ = ['AccountValidator', 'UserValidator', 'WebhookValidator']

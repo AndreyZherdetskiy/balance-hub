@@ -78,12 +78,12 @@ class UserCreate(UserBase, PasswordFieldMixin):
 
     model_config = ConfigDict(
         json_schema_extra={
-            "examples": [
+            'examples': [
                 {
-                    "email": "john@example.com",
-                    "full_name": "John Doe",
-                    "password": "StrongPassw0rd!",
-                    "is_admin": False,
+                    'email': 'john@example.com',
+                    'full_name': 'John Doe',
+                    'password': 'StrongPassw0rd!',
+                    'is_admin': False,
                 }
             ]
         }
@@ -96,9 +96,7 @@ class UserUpdate(BaseEmailFieldMixin, BaseFullNameFieldMixin, BasePasswordFieldM
     is_admin: bool | None = None
 
     model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{"email": "newmail@example.com", "full_name": "New Name"}]
-        }
+        json_schema_extra={'examples': [{'email': 'newmail@example.com', 'full_name': 'New Name'}]}
     )
 
 
@@ -111,12 +109,12 @@ class UserPublic(UserBase):
     model_config = ConfigDict(
         from_attributes=True,
         json_schema_extra={
-            "examples": [
+            'examples': [
                 {
-                    "id": 1,
-                    "email": "user@example.com",
-                    "full_name": "Test User",
-                    "is_admin": False,
+                    'id': 1,
+                    'email': 'user@example.com',
+                    'full_name': 'Test User',
+                    'is_admin': False,
                 }
             ]
         },
@@ -127,13 +125,11 @@ class Token(BaseModel):
     """Ответ с JWT токеном."""
 
     access_token: str
-    token_type: str = "bearer"
+    token_type: str = 'bearer'
 
     model_config = ConfigDict(
         json_schema_extra={
-            "examples": [
-                {"access_token": "eyJhbGciOi...signature", "token_type": "bearer"}
-            ]
+            'examples': [{'access_token': 'eyJhbGciOi...signature', 'token_type': 'bearer'}]
         }
     )
 
@@ -144,7 +140,5 @@ class LoginRequest(EmailFieldMixin, PasswordFieldMixin):
     pass
 
     model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [{"email": "user@example.com", "password": "Password123!"}]
-        }
+        json_schema_extra={'examples': [{'email': 'user@example.com', 'password': 'Password123!'}]}
     )

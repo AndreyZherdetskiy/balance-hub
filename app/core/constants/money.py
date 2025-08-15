@@ -20,7 +20,7 @@ class MonetaryConstants:
     MONEY_TEXT_MAX_LENGTH: int = 100
 
     # Константы значений
-    ZERO: Decimal = Decimal("0")
-    ZERO_TWO_PLACES: Decimal = Decimal("0.00")
-    ONE_CENT: Decimal = Decimal("0.01")
+    ZERO: Decimal = Decimal('0')
+    ZERO_TWO_PLACES: Decimal = Decimal('0.00')
+    ONE_CENT: Decimal = Decimal('0.01')
     MAX_DECIMAL_PLACES: int = 2

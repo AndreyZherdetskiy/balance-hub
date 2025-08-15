@@ -68,9 +68,7 @@ class WebhookService:
             IntegrityError: Если транзакция уже существует.
         """
         # 1. Проверяем идемпотентность ДО создания
-        existing_payment = await self.payments_crud.get_by_transaction(
-            db, transaction_id
-        )
+        existing_payment = await self.payments_crud.get_by_transaction(db, transaction_id)
         if existing_payment is not None:
             raise DuplicateTransactionError()
 
@@ -90,9 +88,7 @@ class WebhookService:
             account_id=account.id,
             amount=amount,
         )
-        account.balance = (
-            account.balance or MonetaryConstants.ZERO_TWO_PLACES
-        ) + amount
+        account.balance = (account.balance or MonetaryConstants.ZERO_TWO_PLACES) + amount
         await db.commit()
 
         await db.refresh(payment)
