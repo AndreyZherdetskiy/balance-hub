@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   db:
     image: postgres:16-alpine
@@ -18,18 +17,17 @@ services:
 
   app:
     build: .
-    command: bash -lc "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/balancehub
-      - SYNC_DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/balancehub
-      - JWT_SECRET=dev_secret_change_me
-      - WEBHOOK_SECRET_KEY=gfdmhghif38yrf9ew0jkf32
-      - ENV=dev
-      - DEBUG=true
-      - CORS_ORIGINS=*
-      - RATE_LIMIT=100/minute
+    command: bash -lc "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    env_file:
+      - .env.docker
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
-      - .:/app
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./scripts:/app/scripts
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+      - ./alembic.ini:/app/alembic.ini
     ports:
       - '8000:8000'
     depends_on:

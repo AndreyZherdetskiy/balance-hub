@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.10-slim
 
 ENV POETRY_VERSION=1.7.1
 
@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY pyproject.toml poetry.lock* /app/
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-dev --no-interaction --no-ansi
+    && poetry install --only main --no-interaction --no-ansi --no-root
 
 COPY . /app
 
