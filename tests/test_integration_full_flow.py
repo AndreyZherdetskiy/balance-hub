@@ -63,158 +63,153 @@ class TestIntegrationFullFlow:
 
         # 2. Админ создает обычного пользователя
         user_data = {
-            "email": TestUserData.INTEGRATION_EMAIL,
-            "full_name": TestUserData.INTEGRATION_FULL_NAME,
-            "password": TestUserData.INTEGRATION_PASSWORD,
-            "is_admin": False,
+            'email': TestUserData.INTEGRATION_EMAIL,
+            'full_name': TestUserData.INTEGRATION_FULL_NAME,
+            'password': TestUserData.INTEGRATION_PASSWORD,
+            'is_admin': False,
         }
 
         resp = await client.post(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
             json=user_data,
         )
         assert resp.status_code == status.HTTP_201_CREATED
         created_user = resp.json()
-        user_id = created_user["id"]
-        assert created_user["email"] == user_data["email"]
-        assert created_user["full_name"] == user_data["full_name"]
-        assert created_user["is_admin"] is False
+        user_id = created_user['id']
+        assert created_user['email'] == user_data['email']
+        assert created_user['full_name'] == user_data['full_name']
+        assert created_user['is_admin'] is False
 
         # 3. Админ создает счет для пользователя
         resp = await client.post(
-            f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.ADMIN_USERS_ACCOUNTS}".format(
+            f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.ADMIN_USERS_ACCOUNTS}'.format(
                 user_id=user_id
             ),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
         )
         assert resp.status_code == status.HTTP_201_CREATED
         account_data = resp.json()
-        account_id = account_data["id"]
-        assert account_data["user_id"] == user_id
-        assert account_data["balance"] == f"{TestMonetaryConstants.AMOUNT_0_00:.2f}"
+        account_id = account_data['id']
+        assert account_data['user_id'] == user_id
+        assert account_data['balance'] == f'{TestMonetaryConstants.AMOUNT_0_00:.2f}'
 
         # 4. Проверяем, что пользователь может видеть свой счет
         user_token = make_token(user_id)
         resp = await client.get(
-            f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}".format(
+            f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}'.format(
                 user_id=user_id
             ),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
         user_accounts = resp.json()
         assert len(user_accounts) == TestNumericConstants.COUNT_SINGLE
-        assert user_accounts[0]["id"] == account_id
+        assert user_accounts[0]['id'] == account_id
 
         # 5. Обрабатываем webhook платеж
         webhook_payload = {
-            "transaction_id": TestDomainIds.INTEGRATION_TX_001,
-            "user_id": user_id,
-            "account_id": account_id,
-            "amount": str(TestMonetaryConstants.AMOUNT_150_00),
+            'transaction_id': TestDomainIds.INTEGRATION_TX_001,
+            'user_id': user_id,
+            'account_id': account_id,
+            'amount': str(TestMonetaryConstants.AMOUNT_150_00),
         }
         signature = compute_signature(
-            account_id=webhook_payload["account_id"],
-            amount=Decimal(webhook_payload["amount"]),
-            transaction_id=webhook_payload["transaction_id"],
-            user_id=webhook_payload["user_id"],
+            account_id=webhook_payload['account_id'],
+            amount=Decimal(webhook_payload['amount']),
+            transaction_id=webhook_payload['transaction_id'],
+            user_id=webhook_payload['user_id'],
             secret_key=settings.webhook_secret_key,
         )
-        webhook_payload["signature"] = signature
+        webhook_payload['signature'] = signature
 
         resp = await client.post(
-            f"{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}",
+            f'{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}',
             json=webhook_payload,
         )
         assert resp.status_code == status.HTTP_201_CREATED
         payment_data = resp.json()
-        assert payment_data["transaction_id"] == TestDomainIds.INTEGRATION_TX_001
-        assert payment_data["amount"] == f"{TestMonetaryConstants.AMOUNT_150_00:.2f}"
+        assert payment_data['transaction_id'] == TestDomainIds.INTEGRATION_TX_001
+        assert payment_data['amount'] == f'{TestMonetaryConstants.AMOUNT_150_00:.2f}'
 
         # 6. Проверяем обновление баланса счета
         resp = await client.get(
-            f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}".format(
+            f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}'.format(
                 user_id=user_id
             ),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
         updated_accounts = resp.json()
-        assert (
-            updated_accounts[0]["balance"]
-            == f"{TestMonetaryConstants.AMOUNT_150_00:.2f}"
-        )
+        assert updated_accounts[0]['balance'] == f'{TestMonetaryConstants.AMOUNT_150_00:.2f}'
 
         # 7. Проверяем историю платежей пользователя
         resp = await client.get(
-            f"{TestPaymentsPaths.PREFIX}{TestPaymentsPaths.LIST}",
+            f'{TestPaymentsPaths.PREFIX}{TestPaymentsPaths.LIST}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
         payments = resp.json()
         assert len(payments) == TestNumericConstants.COUNT_SINGLE
-        assert payments[0]["transaction_id"] == TestDomainIds.INTEGRATION_TX_001
-        assert payments[0]["amount"] == f"{TestMonetaryConstants.AMOUNT_150_00:.2f}"
+        assert payments[0]['transaction_id'] == TestDomainIds.INTEGRATION_TX_001
+        assert payments[0]['amount'] == f'{TestMonetaryConstants.AMOUNT_150_00:.2f}'
 
         # 8. Админ обновляет информацию о пользователе
-        update_data = {"full_name": TestUserData.INTEGRATION_UPDATED_NAME}
+        update_data = {'full_name': TestUserData.INTEGRATION_UPDATED_NAME}
         resp = await client.patch(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USER_ID}".format(
-                user_id=user_id
-            ),
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USER_ID}'.format(user_id=user_id),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
             json=update_data,
         )
         assert resp.status_code == status.HTTP_200_OK
         updated_user = resp.json()
-        assert updated_user["full_name"] == TestUserData.INTEGRATION_UPDATED_NAME
+        assert updated_user['full_name'] == TestUserData.INTEGRATION_UPDATED_NAME
 
         # 9. Проверяем, что пользователь может получить свою обновленную информацию
         resp = await client.get(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ME}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ME}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
         me_data = resp.json()
-        assert me_data["full_name"] == TestUserData.INTEGRATION_UPDATED_NAME
-        assert me_data["email"] == TestUserData.INTEGRATION_EMAIL
+        assert me_data['full_name'] == TestUserData.INTEGRATION_UPDATED_NAME
+        assert me_data['email'] == TestUserData.INTEGRATION_EMAIL
 
         # 10. Админ создает второй счет для пользователя
         resp = await client.post(
-            f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.ADMIN_USERS_ACCOUNTS}".format(
+            f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.ADMIN_USERS_ACCOUNTS}'.format(
                 user_id=user_id
             ),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
         )
         assert resp.status_code == status.HTTP_201_CREATED
         second_account = resp.json()
-        second_account_id = second_account["id"]
-        assert second_account["user_id"] == user_id
+        second_account_id = second_account['id']
+        assert second_account['user_id'] == user_id
 
         # 11. Проверяем, что у пользователя теперь два счета
         resp = await client.get(
-            f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}".format(
+            f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}'.format(
                 user_id=user_id
             ),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
@@ -223,52 +218,50 @@ class TestIntegrationFullFlow:
 
         # 12. Обрабатываем платеж на второй счет
         second_webhook = {
-            "transaction_id": TestDomainIds.INTEGRATION_TX_002,
-            "user_id": user_id,
-            "account_id": second_account_id,
-            "amount": str(TestMonetaryConstants.AMOUNT_75_00),
+            'transaction_id': TestDomainIds.INTEGRATION_TX_002,
+            'user_id': user_id,
+            'account_id': second_account_id,
+            'amount': str(TestMonetaryConstants.AMOUNT_75_00),
         }
         second_signature = compute_signature(
-            account_id=second_webhook["account_id"],
-            amount=Decimal(second_webhook["amount"]),
-            transaction_id=second_webhook["transaction_id"],
-            user_id=second_webhook["user_id"],
+            account_id=second_webhook['account_id'],
+            amount=Decimal(second_webhook['amount']),
+            transaction_id=second_webhook['transaction_id'],
+            user_id=second_webhook['user_id'],
             secret_key=settings.webhook_secret_key,
         )
-        second_webhook["signature"] = second_signature
+        second_webhook['signature'] = second_signature
 
         resp = await client.post(
-            f"{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}",
+            f'{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}',
             json=second_webhook,
         )
         assert resp.status_code == status.HTTP_201_CREATED
 
         # 13. Проверяем, что оба счета имеют правильные балансы
         resp = await client.get(
-            f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}".format(
+            f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}'.format(
                 user_id=user_id
             ),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
         final_accounts = resp.json()
 
         # Находим счета по ID
-        first_acc = next(acc for acc in final_accounts if acc["id"] == account_id)
-        second_acc = next(
-            acc for acc in final_accounts if acc["id"] == second_account_id
-        )
+        first_acc = next(acc for acc in final_accounts if acc['id'] == account_id)
+        second_acc = next(acc for acc in final_accounts if acc['id'] == second_account_id)
 
-        assert first_acc["balance"] == f"{TestMonetaryConstants.AMOUNT_150_00:.2f}"
-        assert second_acc["balance"] == f"{TestMonetaryConstants.AMOUNT_75_00:.2f}"
+        assert first_acc['balance'] == f'{TestMonetaryConstants.AMOUNT_150_00:.2f}'
+        assert second_acc['balance'] == f'{TestMonetaryConstants.AMOUNT_75_00:.2f}'
 
         # 14. Проверяем общую историю платежей
         resp = await client.get(
-            f"{TestPaymentsPaths.PREFIX}{TestPaymentsPaths.LIST}",
+            f'{TestPaymentsPaths.PREFIX}{TestPaymentsPaths.LIST}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
@@ -277,27 +270,25 @@ class TestIntegrationFullFlow:
 
         # Проверяем, что платежи идемпотентны
         resp = await client.post(
-            f"{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}",
+            f'{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}',
             json=webhook_payload,  # Повторяем первый платеж
         )
         assert resp.status_code == status.HTTP_409_CONFLICT
-        assert TestErrorMessages.TRANSACTION_ALREADY_PROCESSED in resp.json()["detail"]
+        assert TestErrorMessages.TRANSACTION_ALREADY_PROCESSED in resp.json()['detail']
 
         # 15. Финальная проверка - админ видит всех пользователей
         resp = await client.get(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
         all_users = resp.json()
-        assert (
-            len(all_users) >= TestNumericConstants.COUNT_TWO
-        )  # Админ + созданный пользователь
+        assert len(all_users) >= TestNumericConstants.COUNT_TWO  # Админ + созданный пользователь
 
         # Проверяем, что созданный пользователь в списке
-        user_emails = [user["email"] for user in all_users]
+        user_emails = [user['email'] for user in all_users]
         assert TestUserData.INTEGRATION_EMAIL in user_emails
 
     @pytest.mark.asyncio()
@@ -338,15 +329,15 @@ class TestIntegrationFullFlow:
 
         for email, full_name in zip(user_emails, user_names):
             user_data = {
-                "email": email,
-                "full_name": full_name,
-                "password": TestUserData.INTEGRATION_PASSWORD,
-                "is_admin": False,
+                'email': email,
+                'full_name': full_name,
+                'password': TestUserData.INTEGRATION_PASSWORD,
+                'is_admin': False,
             }
             resp = await client.post(
-                f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}",
+                f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}',
                 headers={
-                    TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                    TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
                 },
                 json=user_data,
             )
@@ -357,15 +348,15 @@ class TestIntegrationFullFlow:
         account_ids = []
         for user in created_users:
             resp = await client.post(
-                f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.ADMIN_USERS_ACCOUNTS}".format(
-                    user_id=user["id"]
+                f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.ADMIN_USERS_ACCOUNTS}'.format(
+                    user_id=user['id']
                 ),
                 headers={
-                    TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                    TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
                 },
             )
             assert resp.status_code == status.HTTP_201_CREATED
-            account_ids.append(resp.json()["id"])
+            account_ids.append(resp.json()['id'])
 
         # Обрабатываем платежи для всех пользователей
         amounts = [
@@ -374,84 +365,80 @@ class TestIntegrationFullFlow:
             TestMonetaryConstants.AMOUNT_200_00,
         ]
 
-        for i, (user, account_id, amount) in enumerate(
-            zip(created_users, account_ids, amounts)
-        ):
+        for i, (user, account_id, amount) in enumerate(zip(created_users, account_ids, amounts)):
             webhook_data = {
-                "transaction_id": f"multi-tx-{i + 1:03d}",
-                "user_id": user["id"],
-                "account_id": account_id,
-                "amount": str(amount),
+                'transaction_id': f'multi-tx-{i + 1:03d}',
+                'user_id': user['id'],
+                'account_id': account_id,
+                'amount': str(amount),
             }
             signature = compute_signature(
-                account_id=webhook_data["account_id"],
-                amount=Decimal(webhook_data["amount"]),
-                transaction_id=webhook_data["transaction_id"],
-                user_id=webhook_data["user_id"],
+                account_id=webhook_data['account_id'],
+                amount=Decimal(webhook_data['amount']),
+                transaction_id=webhook_data['transaction_id'],
+                user_id=webhook_data['user_id'],
                 secret_key=settings.webhook_secret_key,
             )
-            webhook_data["signature"] = signature
+            webhook_data['signature'] = signature
 
             resp = await client.post(
-                f"{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}",
+                f'{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}',
                 json=webhook_data,
             )
             assert resp.status_code == status.HTTP_201_CREATED
 
         # Проверяем, что каждый пользователь видит только свои данные
         for i, user in enumerate(created_users):
-            user_token = make_token(user["id"])
+            user_token = make_token(user['id'])
 
             # Проверяем счета
             resp = await client.get(
-                f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}".format(
-                    user_id=user["id"]
+                f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}'.format(
+                    user_id=user['id']
                 ),
                 headers={
-                    TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                    TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
                 },
             )
             assert resp.status_code == status.HTTP_200_OK
             user_accounts = resp.json()
             assert len(user_accounts) == TestNumericConstants.COUNT_SINGLE
-            assert user_accounts[0]["balance"] == f"{amounts[i]:.2f}"
+            assert user_accounts[0]['balance'] == f'{amounts[i]:.2f}'
 
             # Проверяем платежи
             resp = await client.get(
-                f"{TestPaymentsPaths.PREFIX}{TestPaymentsPaths.LIST}",
+                f'{TestPaymentsPaths.PREFIX}{TestPaymentsPaths.LIST}',
                 headers={
-                    TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                    TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
                 },
             )
             assert resp.status_code == status.HTTP_200_OK
             user_payments = resp.json()
             assert len(user_payments) == TestNumericConstants.COUNT_SINGLE
-            assert user_payments[0]["amount"] == f"{amounts[i]:.2f}"
+            assert user_payments[0]['amount'] == f'{amounts[i]:.2f}'
 
         # Проверяем, что обычные пользователи не могут видеть чужие данные
-        user1_token = make_token(created_users[0]["id"])
+        user1_token = make_token(created_users[0]['id'])
         resp = await client.get(
-            f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}".format(
-                user_id=created_users[1]["id"]
+            f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.USERS_ACCOUNTS}'.format(
+                user_id=created_users[1]['id']
             ),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user1_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user1_token}'
             },
         )
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
         # Админ может видеть все данные
         resp = await client.get(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
         )
         assert resp.status_code == status.HTTP_200_OK
         all_users = resp.json()
-        assert (
-            len(all_users) >= len(user_emails) + TestNumericConstants.COUNT_SINGLE
-        )  # + админ
+        assert len(all_users) >= len(user_emails) + TestNumericConstants.COUNT_SINGLE  # + админ
 
     @pytest.mark.asyncio()
     async def test_error_scenarios_and_recovery(
@@ -477,15 +464,15 @@ class TestIntegrationFullFlow:
 
         # 1. Попытка создать пользователя с дублирующимся email
         user_data = {
-            "email": TestUserData.DUPLICATE_EMAIL,
-            "full_name": TestUserData.DUPLICATE_FULL_NAME,
-            "password": TestUserData.INTEGRATION_PASSWORD,
+            'email': TestUserData.DUPLICATE_EMAIL,
+            'full_name': TestUserData.DUPLICATE_FULL_NAME,
+            'password': TestUserData.INTEGRATION_PASSWORD,
         }
 
         resp = await client.post(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
             json=user_data,
         )
@@ -493,9 +480,9 @@ class TestIntegrationFullFlow:
 
         # Повторная попытка создания с тем же email
         resp = await client.post(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
             json=user_data,
         )
@@ -503,43 +490,43 @@ class TestIntegrationFullFlow:
 
         # 2. Попытка создать счет для несуществующего пользователя
         resp = await client.post(
-            f"{TestAccountsPaths.PREFIX}{TestAccountsPaths.ADMIN_USERS_ACCOUNTS}".format(
+            f'{TestAccountsPaths.PREFIX}{TestAccountsPaths.ADMIN_USERS_ACCOUNTS}'.format(
                 user_id=TestDomainIds.NONEXISTENT_USER_ID
             ),
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
         )
         assert resp.status_code == status.HTTP_404_NOT_FOUND
 
         # 3. Попытка webhook с неверной подписью
         webhook_data = {
-            "transaction_id": TestDomainIds.INVALID_SIG_TX,
-            "user_id": TestDomainIds.TEST_USER_ID,
-            "account_id": TestDomainIds.TEST_ACCOUNT_ID,
-            "amount": str(TestMonetaryConstants.AMOUNT_100_00),
-            "signature": TestTransactionData.INVALID_SIGNATURE,
+            'transaction_id': TestDomainIds.INVALID_SIG_TX,
+            'user_id': TestDomainIds.TEST_USER_ID,
+            'account_id': TestDomainIds.TEST_ACCOUNT_ID,
+            'amount': str(TestMonetaryConstants.AMOUNT_100_00),
+            'signature': TestTransactionData.INVALID_SIGNATURE,
         }
 
         resp = await client.post(
-            f"{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}",
+            f'{TestWebhookPaths.PREFIX}{TestWebhookPaths.PAYMENT}',
             json=webhook_data,
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
         # 4. Попытка доступа к защищенным эндпоинтам без авторизации
-        resp = await client.get(f"{TestUsersPaths.PREFIX}{TestUsersPaths.ME}")
+        resp = await client.get(f'{TestUsersPaths.PREFIX}{TestUsersPaths.ME}')
         assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
-        resp = await client.get(f"{TestPaymentsPaths.PREFIX}{TestPaymentsPaths.LIST}")
+        resp = await client.get(f'{TestPaymentsPaths.PREFIX}{TestPaymentsPaths.LIST}')
         assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
         # 5. Попытка доступа с неверным токеном
         resp = await client.get(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ME}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ME}',
             headers={
                 TestAuthData.AUTHORIZATION_HEADER: (
-                    f"{TestAuthData.BEARER_PREFIX}{TestAuthData.INVALID_TOKEN}"
+                    f'{TestAuthData.BEARER_PREFIX}{TestAuthData.INVALID_TOKEN}'
                 )
             },
         )
@@ -558,24 +545,24 @@ class TestIntegrationFullFlow:
             user_token = make_token(regular_user.id)
 
         resp = await client.get(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{user_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{user_token}'
             },
         )
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
         # 7. Восстановление после ошибок - создаем валидного пользователя
         valid_user_data = {
-            "email": TestUserData.RECOVERY_EMAIL,
-            "full_name": TestUserData.RECOVERY_FULL_NAME,
-            "password": TestUserData.INTEGRATION_PASSWORD,
+            'email': TestUserData.RECOVERY_EMAIL,
+            'full_name': TestUserData.RECOVERY_FULL_NAME,
+            'password': TestUserData.INTEGRATION_PASSWORD,
         }
 
         resp = await client.post(
-            f"{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}",
+            f'{TestUsersPaths.PREFIX}{TestUsersPaths.ADMIN_USERS}',
             headers={
-                TestAuthData.AUTHORIZATION_HEADER: f"{TestAuthData.BEARER_PREFIX}{admin_token}"
+                TestAuthData.AUTHORIZATION_HEADER: f'{TestAuthData.BEARER_PREFIX}{admin_token}'
             },
             json=valid_user_data,
         )
@@ -583,5 +570,5 @@ class TestIntegrationFullFlow:
 
         # Проверяем, что пользователь создался корректно
         created_user = resp.json()
-        assert created_user["email"] == valid_user_data["email"]
-        assert created_user["full_name"] == valid_user_data["full_name"]
+        assert created_user['email'] == valid_user_data['email']
+        assert created_user['full_name'] == valid_user_data['full_name']

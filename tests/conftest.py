@@ -21,7 +21,6 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import Settings, get_settings
-from app.db.base import Base
 from app.db.session import get_db_session
 from app.models import account as _account_model  # noqa: F401
 from app.models import payment as _payment_model  # noqa: F401
@@ -40,7 +39,7 @@ def test_db_url(tmp_path: Path) -> str:
     Returns:
         str: DSN для async SQLite.
     """
-    return f"sqlite+aiosqlite:///{tmp_path}/test.db"
+    return f'sqlite+aiosqlite:///{tmp_path}/test.db'
 
 
 @pytest_asyncio.fixture()
@@ -64,6 +63,7 @@ async def test_sessionmaker(test_db_url: str) -> async_sessionmaker[AsyncSession
     # Создаём таблицы
     async with engine.begin() as conn:
         from app.models import Base
+
         await conn.run_sync(Base.metadata.create_all)
 
     yield sessionmaker
@@ -71,6 +71,7 @@ async def test_sessionmaker(test_db_url: str) -> async_sessionmaker[AsyncSession
     # Очистка
     async with engine.begin() as conn:
         from app.models import Base
+
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
 
@@ -92,7 +93,7 @@ def test_settings(test_db_url: str) -> Settings:  # type: ignore[name-defined]
 
     return Settings(
         app_name=TestUserData.TEST_APP_NAME,
-        env="test",
+        env='test',
         debug=True,
         cors_origins=[TestValidationData.CORS_WILDCARD],
         jwt_secret=TestUserData.JWT_SECRET_TEST,
@@ -100,7 +101,7 @@ def test_settings(test_db_url: str) -> Settings:  # type: ignore[name-defined]
         jwt_expires_minutes=TestAuthConstants.JWT_EXPIRES_MINUTES_DEFAULT,
         webhook_secret_key=TestUserData.TEST_WEBHOOK_SECRET,
         database_url=test_db_url,
-        sync_database_url=test_db_url.replace("+aiosqlite", ""),
+        sync_database_url=test_db_url.replace('+aiosqlite', ''),
     )
 
 
@@ -150,12 +151,12 @@ async def app(
         FastAPI: Инициализированное тестовое приложение.
     """
     # Обязательные переменные окружения для Settings (для совместимости)
-    monkeypatch.setenv("DATABASE_URL", test_db_url)
+    monkeypatch.setenv('DATABASE_URL', test_db_url)
     from tests.constants import TestUserData, TestValidationData
 
-    monkeypatch.setenv("JWT_SECRET", TestUserData.JWT_SECRET_TEST)
-    monkeypatch.setenv("WEBHOOK_SECRET_KEY", TestUserData.TEST_WEBHOOK_SECRET)
-    monkeypatch.setenv("CORS_ORIGINS", TestValidationData.CORS_WILDCARD)
+    monkeypatch.setenv('JWT_SECRET', TestUserData.JWT_SECRET_TEST)
+    monkeypatch.setenv('WEBHOOK_SECRET_KEY', TestUserData.TEST_WEBHOOK_SECRET)
+    monkeypatch.setenv('CORS_ORIGINS', TestValidationData.CORS_WILDCARD)
 
     # Создаём приложение ПОСЛЕ установки окружения
     # Импорт и создание приложения выполняем ПОСЛЕ установки окружения
@@ -186,7 +187,7 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         AsyncClient: HTTP-клиент.
     """
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(transport=transport, base_url='http://test') as ac:
         yield ac
 
 
@@ -286,8 +287,8 @@ def make_performance_token(performance_app) -> callable:  # type: ignore[name-de
     Returns:
         callable: Функция для создания токенов.
     """
-    from app.core.security import create_access_token
     from app.core.config import get_settings
+    from app.core.security import create_access_token
 
     def _make_performance_token(user_id: int) -> str:
         """Создать токен для пользователя используя настройки приложения."""
@@ -366,6 +367,7 @@ def setup_test_database(postgresql):
             sqlalchemy_url = f'postgresql://{user}@{host}:{port}/{database}'
 
         from sqlalchemy import create_engine
+
         sync_engine = create_engine(sqlalchemy_url, echo=False)
 
         # Создаем все таблицы

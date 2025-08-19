@@ -39,7 +39,7 @@ async def check_database_schema(sessionmaker: async_sessionmaker[AsyncSession]) 
 
         # Проверяем структуру таблицы users
         user_columns = []
-        if "users" in tables:
+        if 'users' in tables:
             result = await db.execute(
                 text("""
                 SELECT column_name, data_type, is_nullable
@@ -50,14 +50,14 @@ async def check_database_schema(sessionmaker: async_sessionmaker[AsyncSession]) 
             )
             # Правильно обрабатываем результаты
             user_columns = [
-                {"column_name": row[0], "data_type": row[1], "is_nullable": row[2]}
+                {'column_name': row[0], 'data_type': row[1], 'is_nullable': row[2]}
                 for row in result.fetchall()
             ]
 
         return {
-            "tables": tables,
-            "user_columns": user_columns,
-            "total_tables": len(tables),
+            'tables': tables,
+            'user_columns': user_columns,
+            'total_tables': len(tables),
         }
 
 
@@ -75,9 +75,7 @@ async def create_test_user(
     async with sessionmaker() as db:
         try:
             # Добавляем уникальный идентификатор к email для избежания дублирования
-            unique_email = (
-                f"{email.split('@')[0]}_{int(time.time() * 1000)}@{email.split('@')[1]}"
-            )
+            unique_email = f'{email.split("@")[0]}_{int(time.time() * 1000)}@{email.split("@")[1]}'
 
             user = await users.create(
                 db,
@@ -88,10 +86,10 @@ async def create_test_user(
             )
             await db.commit()
             return {
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
-                "is_admin": user.is_admin,
+                'id': user.id,
+                'email': user.email,
+                'full_name': user.full_name,
+                'is_admin': user.is_admin,
             }
         except Exception as e:
             await db.rollback()
@@ -105,20 +103,20 @@ async def create_test_account(
 ) -> int:
     """Создает тестовый счет для пользователя."""
     resp = await performance_client.post(
-        f"/api/v1/admin/users/{user_id}/accounts",
-        headers={"Authorization": f"Bearer {admin_token}"},
+        f'/api/v1/admin/users/{user_id}/accounts',
+        headers={'Authorization': f'Bearer {admin_token}'},
     )
     assert resp.status_code == status.HTTP_201_CREATED
-    return resp.json()["id"]
+    return resp.json()['id']
 
 
 def compute_webhook_signature(webhook_data: dict, secret_key: str) -> str:
     """Вычисляет подпись для вебхука."""
     return compute_signature(
-        account_id=webhook_data["account_id"],
-        amount=Decimal(webhook_data["amount"]),
-        transaction_id=webhook_data["transaction_id"],
-        user_id=webhook_data["user_id"],
+        account_id=webhook_data['account_id'],
+        amount=Decimal(webhook_data['amount']),
+        transaction_id=webhook_data['transaction_id'],
+        user_id=webhook_data['user_id'],
         secret_key=secret_key,
     )
 
@@ -135,29 +133,27 @@ async def test_database_schema_postgresql(
     # Проверяем что схема БД создана корректно
     schema_info = await check_database_schema(performance_sessionmaker)
 
-    print(f"Информация о схеме базы данных: {schema_info}")
+    print(f'Информация о схеме базы данных: {schema_info}')
 
     # Проверяем наличие основных таблиц
-    expected_tables = ["users", "accounts", "payments"]
+    expected_tables = ['users', 'accounts', 'payments']
     for table in expected_tables:
-        assert table in schema_info["tables"], (
-            f"Таблица {table} не найдена в базе данных"
-        )
+        assert table in schema_info['tables'], f'Таблица {table} не найдена в базе данных'
 
     # Проверяем структуру таблицы users
-    user_columns = schema_info["user_columns"]
+    user_columns = schema_info['user_columns']
     expected_columns = [
-        "id",
-        "email",
-        "full_name",
-        "hashed_password",
-        "is_admin",
-        "created_at",
+        'id',
+        'email',
+        'full_name',
+        'hashed_password',
+        'is_admin',
+        'created_at',
     ]
 
-    actual_column_names = [col["column_name"] for col in user_columns]
+    actual_column_names = [col['column_name'] for col in user_columns]
     for col in expected_columns:
-        assert col in actual_column_names, f"Колонка {col} не найдена в таблице users"
+        assert col in actual_column_names, f'Колонка {col} не найдена в таблице users'
 
     # Проверяем что email имеет уникальный индекс
     async with performance_sessionmaker() as db:
@@ -171,7 +167,7 @@ async def test_database_schema_postgresql(
         """)
         )
         email_indexes = result.fetchall()
-        assert len(email_indexes) > 0, "Уникальный индекс для колонки email не найден"
+        assert len(email_indexes) > 0, 'Уникальный индекс для колонки email не найден'
 
 
 @pytest.mark.asyncio()
@@ -200,39 +196,35 @@ async def test_concurrent_webhook_requests_postgresql(
         TestUserData.ADMIN_PASSWORD,
         is_admin=True,
     )
-    admin_token = make_performance_token(admin_data["id"])
+    admin_token = make_performance_token(admin_data['id'])
 
     # Создаем счет для пользователя
-    account_id = await create_test_account(
-        performance_client, user_data["id"], admin_token
-    )
+    account_id = await create_test_account(performance_client, user_data['id'], admin_token)
 
     # Функция для отправки вебхука
     async def send_webhook(tx_id: str, amount: float) -> int:
         try:
             webhook_data = {
-                "transaction_id": tx_id,
-                "user_id": user_data["id"],
-                "account_id": account_id,  # Используем созданный счет
-                "amount": amount,
+                'transaction_id': tx_id,
+                'user_id': user_data['id'],
+                'account_id': account_id,  # Используем созданный счет
+                'amount': amount,
             }
-            webhook_data["signature"] = compute_webhook_signature(
+            webhook_data['signature'] = compute_webhook_signature(
                 webhook_data, settings.webhook_secret_key
             )
 
-            resp = await performance_client.post(
-                "/api/v1/webhook/payment", json=webhook_data
-            )
+            resp = await performance_client.post('/api/v1/webhook/payment', json=webhook_data)
             return resp.status_code
         except Exception as e:
-            print(f"Webhook error for {tx_id}: {e}")
+            print(f'Webhook error for {tx_id}: {e}')
             raise e
 
     # Отправляем 100 одновременных запросов (уменьшаем для стабильности)
     tasks = []
     for i in range(100):
         # Добавляем уникальный timestamp для избежания дублирования transaction_id
-        unique_tx_id = f"concurrent-tx-{i}-{int(time.time() * 1000000)}"
+        unique_tx_id = f'concurrent-tx-{i}-{int(time.time() * 1000000)}'
         task = send_webhook(unique_tx_id, float(TestMonetaryConstants.AMOUNT_10_00))
         tasks.append(task)
 
@@ -244,28 +236,26 @@ async def test_concurrent_webhook_requests_postgresql(
     successful_results = [r for r in results if not isinstance(r, Exception)]
     failed_results = [r for r in results if isinstance(r, Exception)]
 
-    print(f"Успешные запросы вебхука: {len(successful_results)} из 100")
-    print(f"Неудачные запросы вебхука: {len(failed_results)} из 100")
+    print(f'Успешные запросы вебхука: {len(successful_results)} из 100')
+    print(f'Неудачные запросы вебхука: {len(failed_results)} из 100')
 
     if failed_results:
-        print(f"Первые несколько ошибок: {failed_results[:3]}")
+        print(f'Первые несколько ошибок: {failed_results[:3]}')
 
     # Проверяем что большинство запросов успешны (минимум 90%)
     assert len(successful_results) >= 90, (
-        f"Ожидается минимум 90 успешных запросов, получено {len(successful_results)}"
+        f'Ожидается минимум 90 успешных запросов, получено {len(successful_results)}'
     )
-    assert all(
-        status_code == status.HTTP_201_CREATED for status_code in successful_results
-    )
+    assert all(status_code == status.HTTP_201_CREATED for status_code in successful_results)
 
     # Проверяем что обработка заняла разумное время (< 30 секунд для 100 запросов)
     processing_time = end_time - start_time
-    assert processing_time < 30.0, f"Обработка заняла {processing_time:.2f} секунд"
+    assert processing_time < 30.0, f'Обработка заняла {processing_time:.2f} секунд'
 
     # Проверяем что все платежи записались (может быть меньше из-за дублирования transaction_id)
-    user_token = make_performance_token(user_data["id"])
+    user_token = make_performance_token(user_data['id'])
     resp = await performance_client.get(
-        "/api/v1/payments?limit=200", headers={"Authorization": f"Bearer {user_token}"}
+        '/api/v1/payments?limit=200', headers={'Authorization': f'Bearer {user_token}'}
     )
     assert resp.status_code == status.HTTP_200_OK
     payments = resp.json()
@@ -273,18 +263,14 @@ async def test_concurrent_webhook_requests_postgresql(
     # Проверяем что создалось достаточно платежей (минимум 90% от успешных запросов)
     expected_min_payments = int(len(successful_results) * 0.9)
     assert len(payments) >= expected_min_payments, (
-        f"Ожидается минимум {expected_min_payments} платежей, получено {len(payments)}"
+        f'Ожидается минимум {expected_min_payments} платежей, получено {len(payments)}'
     )
 
-    print(
-        f"Создано платежей: {len(payments)} из {len(successful_results)} успешных запросов"
-    )
+    print(f'Создано платежей: {len(payments)} из {len(successful_results)} успешных запросов')
 
     # Проверяем производительность (должно быть > 3 запроса в секунду)
     requests_per_second = len(successful_results) / processing_time
-    assert requests_per_second > 3, (
-        f"Только {requests_per_second:.1f} запросов в секунду"
-    )
+    assert requests_per_second > 3, f'Только {requests_per_second:.1f} запросов в секунду'
 
 
 @pytest.mark.asyncio()
@@ -303,34 +289,32 @@ async def test_large_number_of_users_creation_postgresql(
         TestUserData.ADMIN_PASSWORD,
         is_admin=True,
     )
-    admin_token = make_performance_token(admin_data["id"])
+    admin_token = make_performance_token(admin_data['id'])
 
     # Функция для создания пользователя
     async def create_user(i: int) -> int:
         # Создаем уникальный email для каждого пользователя
-        unique_email = f"bulk{i:02d}_{int(time.time() * 1000000)}@test.com"
+        unique_email = f'bulk{i:02d}_{int(time.time() * 1000000)}@test.com'
 
         # Используем только буквы A-Z (26 букв), для остальных повторяем
         letter_index = ((i - 1) % 26) + 1  # 1-26, затем снова 1-26
         letter = chr(64 + letter_index)  # A, B, C, ..., Z, A, B, C, ...
 
         user_data = {
-            "email": unique_email,
-            "full_name": f"Bulk User {letter}",  # ТОЛЬКО буквы: A-Z
-            "password": TestUserData.TEST_PASSWORD_STRONG,
-            "is_admin": False,
+            'email': unique_email,
+            'full_name': f'Bulk User {letter}',  # ТОЛЬКО буквы: A-Z
+            'password': TestUserData.TEST_PASSWORD_STRONG,
+            'is_admin': False,
         }
         resp = await performance_client.post(
-            "/api/v1/admin/users",
-            headers={"Authorization": f"Bearer {admin_token}"},
+            '/api/v1/admin/users',
+            headers={'Authorization': f'Bearer {admin_token}'},
             json=user_data,
         )
 
         # Добавляем отладку для понимания ошибок
         if resp.status_code != status.HTTP_201_CREATED:
-            print(
-                f"Создание пользователя {i} не удалось: {resp.status_code} - {resp.text}"
-            )
+            print(f'Создание пользователя {i} не удалось: {resp.status_code} - {resp.text}')
 
         return resp.status_code
 
@@ -348,54 +332,46 @@ async def test_large_number_of_users_creation_postgresql(
     successful_results = [r for r in results if not isinstance(r, Exception)]
     failed_results = [r for r in results if isinstance(r, Exception)]
 
-    print(f"Успешные создания пользователей: {len(successful_results)} из 50")
-    print(f"Неудачные создания пользователей: {len(failed_results)} из 50")
+    print(f'Успешные создания пользователей: {len(successful_results)} из 50')
+    print(f'Неудачные создания пользователей: {len(failed_results)} из 50')
 
     if failed_results:
-        print(f"Первые несколько ошибок: {failed_results[:3]}")
+        print(f'Первые несколько ошибок: {failed_results[:3]}')
 
     # Проверяем что большинство запросов успешны (минимум 90%)
     assert len(successful_results) >= 45, (
-        f"Ожидается минимум 45 успешных созданий, получено {len(successful_results)}"
+        f'Ожидается минимум 45 успешных созданий, получено {len(successful_results)}'
     )
 
     # Проверяем что все успешные запросы вернули 201
-    successful_statuses = [
-        r for r in successful_results if r == status.HTTP_201_CREATED
-    ]
-    print(
-        f"Успешные ответы 201: {len(successful_statuses)} из {len(successful_results)}"
-    )
+    successful_statuses = [r for r in successful_results if r == status.HTTP_201_CREATED]
+    print(f'Успешные ответы 201: {len(successful_statuses)} из {len(successful_results)}')
 
     # Проверяем что большинство успешных запросов вернули 201
     assert len(successful_statuses) >= int(len(successful_results) * 0.9), (
-        "Ожидается минимум 90% ответов 201"
+        'Ожидается минимум 90% ответов 201'
     )
 
     # Проверяем время выполнения
     processing_time = end_time - start_time
-    assert processing_time < 60.0, (
-        f"Массовое создание заняло {processing_time:.2f} секунд"
-    )
+    assert processing_time < 60.0, f'Массовое создание заняло {processing_time:.2f} секунд'
 
     # Проверяем что большинство пользователей в базе
     resp = await performance_client.get(
-        "/api/v1/admin/users", headers={"Authorization": f"Bearer {admin_token}"}
+        '/api/v1/admin/users', headers={'Authorization': f'Bearer {admin_token}'}
     )
     assert resp.status_code == status.HTTP_200_OK
     all_users = resp.json()
     expected_min_users = int(len(successful_results) * 0.9) + 1  # +1 для админа
     assert len(all_users) >= expected_min_users, (
-        f"Ожидается минимум {expected_min_users} пользователей, получено {len(all_users)}"
+        f'Ожидается минимум {expected_min_users} пользователей, получено {len(all_users)}'
     )
 
-    print(f"Пользователей в базе данных: {len(all_users)} (включая админа)")
+    print(f'Пользователей в базе данных: {len(all_users)} (включая админа)')
 
     # Проверяем производительность (должно быть > 0.8 пользователя в секунду)
     users_per_second = len(successful_results) / processing_time
-    assert users_per_second > 0.8, (
-        f"Только {users_per_second:.1f} пользователей в секунду"
-    )
+    assert users_per_second > 0.8, f'Только {users_per_second:.1f} пользователей в секунду'
 
 
 @pytest.mark.asyncio()
@@ -422,50 +398,46 @@ async def test_large_payment_amounts_postgresql(
         TestUserData.ADMIN_PASSWORD,
         is_admin=True,
     )
-    admin_token = make_performance_token(admin_data["id"])
+    admin_token = make_performance_token(admin_data['id'])
 
     # Создаем счет
-    account_id = await create_test_account(
-        performance_client, user_data["id"], admin_token
-    )
+    account_id = await create_test_account(performance_client, user_data['id'], admin_token)
 
     # Отправляем платежи с большими суммами (тестируем точность PostgreSQL)
     large_amounts = [
-        Decimal("1000000.00"),  # 1 миллион
-        Decimal("5000000.50"),  # 5 миллионов 50 копеек
-        Decimal("10000000.99"),  # 10 миллионов 99 копеек
-        Decimal("50000000.01"),  # 50 миллионов 1 копейка
-        Decimal("100000000.00"),  # 100 миллионов
+        Decimal('1000000.00'),  # 1 миллион
+        Decimal('5000000.50'),  # 5 миллионов 50 копеек
+        Decimal('10000000.99'),  # 10 миллионов 99 копеек
+        Decimal('50000000.01'),  # 50 миллионов 1 копейка
+        Decimal('100000000.00'),  # 100 миллионов
     ]
 
     start_time = time.time()
 
     for i, amount in enumerate(large_amounts, 1):
         # Добавляем уникальный timestamp для избежания дублирования
-        unique_tx_id = f"large-tx-{i}-{int(time.time() * 1000000)}"
+        unique_tx_id = f'large-tx-{i}-{int(time.time() * 1000000)}'
         webhook_data = {
-            "transaction_id": unique_tx_id,
-            "user_id": user_data["id"],
-            "account_id": account_id,
-            "amount": float(amount),
+            'transaction_id': unique_tx_id,
+            'user_id': user_data['id'],
+            'account_id': account_id,
+            'amount': float(amount),
         }
-        webhook_data["signature"] = compute_webhook_signature(
+        webhook_data['signature'] = compute_webhook_signature(
             webhook_data, settings.webhook_secret_key
         )
 
-        resp = await performance_client.post(
-            "/api/v1/webhook/payment", json=webhook_data
-        )
+        resp = await performance_client.post('/api/v1/webhook/payment', json=webhook_data)
         assert resp.status_code == status.HTTP_201_CREATED
 
     end_time = time.time()
     processing_time = end_time - start_time
 
     # Проверяем итоговый баланс (PostgreSQL должен точно посчитать)
-    user_token = make_performance_token(user_data["id"])
+    user_token = make_performance_token(user_data['id'])
     resp = await performance_client.get(
-        f"/api/v1/users/{user_data['id']}/accounts",
-        headers={"Authorization": f"Bearer {user_token}"},
+        f'/api/v1/users/{user_data["id"]}/accounts',
+        headers={'Authorization': f'Bearer {user_token}'},
     )
     assert resp.status_code == status.HTTP_200_OK
     accounts = resp.json()
@@ -473,26 +445,24 @@ async def test_large_payment_amounts_postgresql(
 
     # Проверяем что все платежи создались
     resp = await performance_client.get(
-        "/api/v1/payments?limit=200", headers={"Authorization": f"Bearer {user_token}"}
+        '/api/v1/payments?limit=200', headers={'Authorization': f'Bearer {user_token}'}
     )
     assert resp.status_code == status.HTTP_200_OK
     payments = resp.json()
     assert len(payments) == len(large_amounts), (
-        f"Ожидается {len(large_amounts)} платежей, получено {len(payments)}"
+        f'Ожидается {len(large_amounts)} платежей, получено {len(payments)}'
     )
 
     # Проверяем итоговый баланс
-    final_balance = sum(Decimal(payment["amount"]) for payment in payments)
+    final_balance = sum(Decimal(payment['amount']) for payment in payments)
     expected_balance = sum(large_amounts)
     assert final_balance == expected_balance, (
-        f"Ожидаемый баланс {expected_balance}, получен {final_balance}"
+        f'Ожидаемый баланс {expected_balance}, получен {final_balance}'
     )
 
     # Проверяем производительность (должно быть > 0.1 платежа в секунду)
     payments_per_second = len(large_amounts) / processing_time
-    assert payments_per_second > 0.1, (
-        f"Только {payments_per_second:.1f} платежей в секунду"
-    )
+    assert payments_per_second > 0.1, f'Только {payments_per_second:.1f} платежей в секунду'
 
 
 @pytest.mark.asyncio()
@@ -510,14 +480,14 @@ async def test_rapid_sequential_requests_postgresql(
         TestUserData.RAPID_FULL_NAME,
         TestUserData.TEST_PASSWORD_STRONG,
     )
-    user_token = make_performance_token(user_data["id"])
+    user_token = make_performance_token(user_data['id'])
 
     # Быстро отправляем много запросов на получение профиля
     start_time = time.time()
 
     for _ in range(100):  # Уменьшаем до 100 запросов для стабильности
         resp = await performance_client.get(
-            "/api/v1/users/me", headers={"Authorization": f"Bearer {user_token}"}
+            '/api/v1/users/me', headers={'Authorization': f'Bearer {user_token}'}
         )
         assert resp.status_code == status.HTTP_200_OK
 
@@ -525,13 +495,11 @@ async def test_rapid_sequential_requests_postgresql(
     processing_time = end_time - start_time
 
     # 100 запросов должны выполниться быстро
-    assert processing_time < 10.0, f"100 запросов заняли {processing_time:.2f} секунд"
+    assert processing_time < 10.0, f'100 запросов заняли {processing_time:.2f} секунд'
 
     # Средняя скорость должна быть > 10 запросов в секунду
     requests_per_second = 100 / processing_time
-    assert requests_per_second > 10, (
-        f"Только {requests_per_second:.1f} запросов в секунду"
-    )
+    assert requests_per_second > 10, f'Только {requests_per_second:.1f} запросов в секунду'
 
 
 @pytest.mark.asyncio()
@@ -547,8 +515,8 @@ async def test_memory_usage_with_many_accounts_postgresql(
     for i in range(20):  # Уменьшаем до 20 пользователей для стабильности
         user_data = await create_test_user(
             performance_sessionmaker,
-            f"memory_user_{i}@example.com",
-            f"Memory User {i}",
+            f'memory_user_{i}@example.com',
+            f'Memory User {i}',
             TestUserData.TEST_PASSWORD_STRONG,
         )
         created_users.append(user_data)
@@ -560,7 +528,7 @@ async def test_memory_usage_with_many_accounts_postgresql(
         TestUserData.ADMIN_PASSWORD,
         is_admin=True,
     )
-    admin_token = make_performance_token(admin_data["id"])
+    admin_token = make_performance_token(admin_data['id'])
 
     # Создаем по 5 счетов для каждого пользователя
     start_time = time.time()
@@ -568,8 +536,8 @@ async def test_memory_usage_with_many_accounts_postgresql(
     for user in created_users:
         for j in range(5):
             resp = await performance_client.post(
-                f"/api/v1/admin/users/{user['id']}/accounts",
-                headers={"Authorization": f"Bearer {admin_token}"},
+                f'/api/v1/admin/users/{user["id"]}/accounts',
+                headers={'Authorization': f'Bearer {admin_token}'},
             )
             assert resp.status_code == status.HTTP_201_CREATED
 
@@ -580,10 +548,10 @@ async def test_memory_usage_with_many_accounts_postgresql(
     start_time = time.time()
 
     for user in created_users[:10]:  # Проверяем первых 10
-        user_token = make_performance_token(user["id"])
+        user_token = make_performance_token(user['id'])
         resp = await performance_client.get(
-            f"/api/v1/users/{user['id']}/accounts",
-            headers={"Authorization": f"Bearer {user_token}"},
+            f'/api/v1/users/{user["id"]}/accounts',
+            headers={'Authorization': f'Bearer {user_token}'},
         )
         assert resp.status_code == status.HTTP_200_OK
         accounts = resp.json()
@@ -594,14 +562,10 @@ async def test_memory_usage_with_many_accounts_postgresql(
 
     # Проверяем производительность
     accounts_per_second = (20 * 5) / creation_time
-    assert accounts_per_second > 1, (
-        f"Только {accounts_per_second:.1f} счетов в секунду создано"
-    )
+    assert accounts_per_second > 1, f'Только {accounts_per_second:.1f} счетов в секунду создано'
 
     retrievals_per_second = 10 / retrieval_time
-    assert retrievals_per_second > 0.5, (
-        f"Только {retrievals_per_second:.1f} извлечений в секунду"
-    )
+    assert retrievals_per_second > 0.5, f'Только {retrievals_per_second:.1f} извлечений в секунду'
 
 
 # === Стресс-тесты PostgreSQL ===
@@ -633,53 +597,49 @@ async def test_webhook_idempotency_stress_postgresql(
         TestUserData.ADMIN_PASSWORD,
         is_admin=True,
     )
-    admin_token = make_performance_token(admin_data["id"])
+    admin_token = make_performance_token(admin_data['id'])
 
     # Создаем счет для пользователя
-    account_id = await create_test_account(
-        performance_client, user_data["id"], admin_token
-    )
+    account_id = await create_test_account(performance_client, user_data['id'], admin_token)
 
     # Отправляем один и тот же платеж 5 раз (должен быть идемпотентным)
     webhook_data = {
-        "transaction_id": f"idempotent-tx-{int(time.time() * 1000000)}",
-        "user_id": user_data["id"],
-        "account_id": account_id,
-        "amount": float(TestMonetaryConstants.AMOUNT_100_00),
+        'transaction_id': f'idempotent-tx-{int(time.time() * 1000000)}',
+        'user_id': user_data['id'],
+        'account_id': account_id,
+        'amount': float(TestMonetaryConstants.AMOUNT_100_00),
     }
-    webhook_data["signature"] = compute_webhook_signature(
+    webhook_data['signature'] = compute_webhook_signature(
         webhook_data, settings.webhook_secret_key
     )
 
     # Первый запрос должен быть успешным
-    resp = await performance_client.post("/api/v1/webhook/payment", json=webhook_data)
+    resp = await performance_client.post('/api/v1/webhook/payment', json=webhook_data)
     assert resp.status_code == status.HTTP_201_CREATED
 
     # Последующие запросы должны вернуть 409 (дублирование)
     for _ in range(4):
-        resp = await performance_client.post(
-            "/api/v1/webhook/payment", json=webhook_data
-        )
+        resp = await performance_client.post('/api/v1/webhook/payment', json=webhook_data)
         assert resp.status_code == status.HTTP_409_CONFLICT
 
     # В базе должен быть только один платеж
-    user_token = make_performance_token(user_data["id"])
+    user_token = make_performance_token(user_data['id'])
     resp = await performance_client.get(
-        "/api/v1/payments?limit=200", headers={"Authorization": f"Bearer {user_token}"}
+        '/api/v1/payments?limit=200', headers={'Authorization': f'Bearer {user_token}'}
     )
     assert resp.status_code == status.HTTP_200_OK
     payments = resp.json()
     assert len(payments) == 1
-    assert payments[0]["amount"] == str(TestMonetaryConstants.AMOUNT_100_00)
+    assert payments[0]['amount'] == str(TestMonetaryConstants.AMOUNT_100_00)
 
     # Баланс должен быть 100, а не 5000
     resp = await performance_client.get(
-        f"/api/v1/users/{user_data['id']}/accounts",
-        headers={"Authorization": f"Bearer {user_token}"},
+        f'/api/v1/users/{user_data["id"]}/accounts',
+        headers={'Authorization': f'Bearer {user_token}'},
     )
     assert resp.status_code == status.HTTP_200_OK
     accounts = resp.json()
-    assert accounts[0]["balance"] == str(TestMonetaryConstants.AMOUNT_100_00)
+    assert accounts[0]['balance'] == str(TestMonetaryConstants.AMOUNT_100_00)
 
 
 @pytest.mark.asyncio()
@@ -699,51 +659,49 @@ async def test_auth_token_stress_postgresql(
     )
 
     # Тестируем создание токена напрямую (используя единые настройки)
-    direct_token = make_performance_token(user_data["id"])
+    direct_token = make_performance_token(user_data['id'])
     test_me_resp = await performance_client.get(
-        "/api/v1/users/me", headers={"Authorization": f"Bearer {direct_token}"}
+        '/api/v1/users/me', headers={'Authorization': f'Bearer {direct_token}'}
     )
 
     if test_me_resp.status_code != status.HTTP_200_OK:
         print(
-            f"Прямая валидация токена не удалась: {test_me_resp.status_code}, "
-            f"ответ: {test_me_resp.text}"
+            f'Прямая валидация токена не удалась: {test_me_resp.status_code}, '
+            f'ответ: {test_me_resp.text}'
         )
         # Если прямой токен не работает, значит проблема все еще есть
-        raise AssertionError("Изоляция настроек JWT все еще не работает")
+        raise AssertionError('Изоляция настроек JWT все еще не работает')
 
-    print("Прямая валидация токена успешна - изоляция настроек ИСПРАВЛЕНА!")
+    print('Прямая валидация токена успешна - изоляция настроек ИСПРАВЛЕНА!')
 
     # Создаем 50 токенов через API (возвращаем к оригинальной нагрузке)
     tokens = []
     for i in range(50):
         resp = await performance_client.post(
-            "/api/v1/auth/login",
+            '/api/v1/auth/login',
             json={
-                "email": user_data["email"],
-                "password": TestUserData.TEST_PASSWORD_STRONG,
+                'email': user_data['email'],
+                'password': TestUserData.TEST_PASSWORD_STRONG,
             },
         )
         if resp.status_code != status.HTTP_200_OK:
-            print(
-                f"Логин не удался для попытки {i}: {resp.status_code}, ответ: {resp.text}"
-            )
+            print(f'Логин не удался для попытки {i}: {resp.status_code}, ответ: {resp.text}')
             continue
 
-        token = resp.json()["access_token"]
+        token = resp.json()['access_token']
         tokens.append(token)
 
-    print(f"Успешно создано {len(tokens)} токенов через API")
+    print(f'Успешно создано {len(tokens)} токенов через API')
 
     # Используем все токены одновременно (возвращаем к оригинальному стресс-тесту)
     async def use_token(token: str) -> int:
         try:
             resp = await performance_client.get(
-                "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
+                '/api/v1/users/me', headers={'Authorization': f'Bearer {token}'}
             )
             return resp.status_code
         except Exception as e:
-            print(f"Ошибка токена: {e}")
+            print(f'Ошибка токена: {e}')
             raise e
 
     tasks = [use_token(token) for token in tokens]
@@ -755,29 +713,29 @@ async def test_auth_token_stress_postgresql(
     ]
     failed_results = [r for r in results if isinstance(r, Exception)]
 
-    print(f"Успешные использования токенов: {len(successful_results)} из {len(tokens)}")
-    print(f"Неудачные использования токенов: {len(failed_results)} из {len(tokens)}")
+    print(f'Успешные использования токенов: {len(successful_results)} из {len(tokens)}')
+    print(f'Неудачные использования токенов: {len(failed_results)} из {len(tokens)}')
 
     # Требования учитывают, что прямые токены работают (изоляция настроек решена)
-    assert len(tokens) >= 45, (
-        f"Ожидается минимум 45 созданных токенов, получено {len(tokens)}"
-    )
+    assert len(tokens) >= 45, f'Ожидается минимум 45 созданных токенов, получено {len(tokens)}'
 
     # Если токены через API не работают, но прямые работают - это менее критично
     if len(successful_results) == 0:
         print(
-            "ПРЕДУПРЕЖДЕНИЕ: Токены API не работают, но прямые токены работают - изоляция настроек исправлена"
+            'ПРЕДУПРЕЖДЕНИЕ: Токены API не работают, '
+            'но прямые токены работают - изоляция настроек исправлена'
         )
         print(
-            "Это указывает на проблему с сервисом аутентификации в API, а не с производительностью или настройками"
+            'Это указывает на проблему с сервисом аутентификации в API, '
+            'а не с производительностью или настройками'
         )
         # Проверяем что хотя бы токены создаются
-        assert len(tokens) >= 45, "Токены должны создаваться успешно"
+        assert len(tokens) >= 45, 'Токены должны создаваться успешно'
     else:
         # Если токены работают, проверяем производительность
         assert len(successful_results) >= int(len(tokens) * 0.7), (
-            f"Ожидается минимум 70% успешных использований токенов, "
-            f"получено {len(successful_results)}/{len(tokens)}"
+            f'Ожидается минимум 70% успешных использований токенов, '
+            f'получено {len(successful_results)}/{len(tokens)}'
         )
 
 
@@ -790,23 +748,19 @@ async def test_invalid_request_flood_postgresql(
     # Отправляем много невалидных запросов
     invalid_requests = [
         # Невалидные данные логина
-        performance_client.post(
-            "/api/v1/auth/login", json={"email": "invalid", "password": ""}
-        ),
-        performance_client.post("/api/v1/auth/login", json={}),
-        performance_client.post(
-            "/api/v1/auth/login", json={"email": "", "password": "test"}
-        ),
+        performance_client.post('/api/v1/auth/login', json={'email': 'invalid', 'password': ''}),
+        performance_client.post('/api/v1/auth/login', json={}),
+        performance_client.post('/api/v1/auth/login', json={'email': '', 'password': 'test'}),
         # Запросы без авторизации
-        performance_client.get("/api/v1/users/me"),
-        performance_client.get("/api/v1/payments"),
-        performance_client.get("/api/v1/users/999/accounts"),
+        performance_client.get('/api/v1/users/me'),
+        performance_client.get('/api/v1/payments'),
+        performance_client.get('/api/v1/users/999/accounts'),
         # Невалидные вебхуки
-        performance_client.post("/api/v1/webhook/payment", json={}),
-        performance_client.post("/api/v1/webhook/payment", json={"invalid": "data"}),
+        performance_client.post('/api/v1/webhook/payment', json={}),
+        performance_client.post('/api/v1/webhook/payment', json={'invalid': 'data'}),
         # Запросы к несуществующим эндпоинтам
-        performance_client.get("/api/v1/nonexistent"),
-        performance_client.post("/api/v1/fake/endpoint"),
+        performance_client.get('/api/v1/nonexistent'),
+        performance_client.post('/api/v1/fake/endpoint'),
     ]
 
     # Повторяем каждый невалидный запрос 50 раз
@@ -820,20 +774,16 @@ async def test_invalid_request_flood_postgresql(
 
     # Проверяем что сервер обработал все запросы быстро
     processing_time = end_time - start_time
-    assert processing_time < 30.0, (
-        f"Невалидные запросы заняли {processing_time:.2f} секунд"
-    )
+    assert processing_time < 30.0, f'Невалидные запросы заняли {processing_time:.2f} секунд'
 
     # Проверяем что нет внутренних ошибок сервера
     for result in results:
-        if hasattr(result, "status_code"):
+        if hasattr(result, 'status_code'):
             assert result.status_code != status.HTTP_500_INTERNAL_SERVER_ERROR
 
     # Проверяем производительность (должно быть > 20 запросов в секунду)
     requests_per_second = len(all_tasks) / processing_time
-    assert requests_per_second > 20, (
-        f"Только {requests_per_second:.1f} запросов в секунду"
-    )
+    assert requests_per_second > 20, f'Только {requests_per_second:.1f} запросов в секунду'
 
 
 @pytest.mark.asyncio()
@@ -851,31 +801,31 @@ async def test_database_connection_pool_stress_postgresql(
         TestUserData.POOL_FULL_NAME,
         TestUserData.TEST_PASSWORD_STRONG,
     )
-    user_token = make_performance_token(user_data["id"])
+    user_token = make_performance_token(user_data['id'])
 
     # Создаем множество одновременных операций с БД
     async def complex_db_operation(i: int) -> dict:
         # Читаем профиль
         profile_resp = await performance_client.get(
-            "/api/v1/users/me", headers={"Authorization": f"Bearer {user_token}"}
+            '/api/v1/users/me', headers={'Authorization': f'Bearer {user_token}'}
         )
 
         # Читаем платежи
         payments_resp = await performance_client.get(
-            "/api/v1/payments", headers={"Authorization": f"Bearer {user_token}"}
+            '/api/v1/payments', headers={'Authorization': f'Bearer {user_token}'}
         )
 
         # Читаем счета
         accounts_resp = await performance_client.get(
-            f"/api/v1/users/{user_data['id']}/accounts",
-            headers={"Authorization": f"Bearer {user_token}"},
+            f'/api/v1/users/{user_data["id"]}/accounts',
+            headers={'Authorization': f'Bearer {user_token}'},
         )
 
         return {
-            "profile_status": profile_resp.status_code,
-            "payments_status": payments_resp.status_code,
-            "accounts_status": accounts_resp.status_code,
-            "iteration": i,
+            'profile_status': profile_resp.status_code,
+            'payments_status': payments_resp.status_code,
+            'accounts_status': accounts_resp.status_code,
+            'iteration': i,
         }
 
     # Запускаем 100 одновременных операций
@@ -890,24 +840,20 @@ async def test_database_connection_pool_stress_postgresql(
     # Проверяем что все операции успешны
     successful_results = [r for r in results if not isinstance(r, Exception)]
     assert len(successful_results) == 100, (
-        f"Ожидается 100 успешных операций, получено {len(successful_results)}"
+        f'Ожидается 100 успешных операций, получено {len(successful_results)}'
     )
 
     for result in successful_results:
-        assert result["profile_status"] == status.HTTP_200_OK
-        assert result["payments_status"] == status.HTTP_200_OK
-        assert result["accounts_status"] == status.HTTP_200_OK
+        assert result['profile_status'] == status.HTTP_200_OK
+        assert result['payments_status'] == status.HTTP_200_OK
+        assert result['accounts_status'] == status.HTTP_200_OK
 
     # Проверяем производительность
     operations_per_second = 100 / processing_time
-    assert operations_per_second > 3, (
-        f"Только {operations_per_second:.1f} операций в секунду"
-    )
+    assert operations_per_second > 3, f'Только {operations_per_second:.1f} операций в секунду'
 
     # Проверяем что время выполнения разумное
-    assert processing_time < 30.0, (
-        f"Стресс-тест пула занял {processing_time:.2f} секунд"
-    )
+    assert processing_time < 30.0, f'Стресс-тест пула занял {processing_time:.2f} секунд'
 
 
 @pytest.mark.asyncio()
@@ -923,8 +869,8 @@ async def test_decimal_precision_postgresql(
     # Создаем пользователя и админа
     user_data = await create_test_user(
         performance_sessionmaker,
-        "precise_test@example.com",
-        "Precise Test User",
+        'precise_test@example.com',
+        'Precise Test User',
         TestUserData.TEST_PASSWORD_STRONG,
     )
     admin_data = await create_test_user(
@@ -934,52 +880,48 @@ async def test_decimal_precision_postgresql(
         TestUserData.ADMIN_PASSWORD,
         is_admin=True,
     )
-    admin_token = make_performance_token(admin_data["id"])
+    admin_token = make_performance_token(admin_data['id'])
 
     # Создаем счет
-    account_id = await create_test_account(
-        performance_client, user_data["id"], admin_token
-    )
+    account_id = await create_test_account(performance_client, user_data['id'], admin_token)
 
     # Тестируем точность с очень маленькими суммами
     precision_amounts = [
-        Decimal("0.01"),  # 1 копейка
-        Decimal("0.99"),  # 99 копеек
-        Decimal("1.00"),  # 1 рубль
-        Decimal("1.01"),  # 1 рубль 1 копейка
-        Decimal("99.99"),  # 99 рублей 99 копеек
-        Decimal("100.00"),  # 100 рублей
-        Decimal("100.01"),  # 100 рублей 1 копейка
+        Decimal('0.01'),  # 1 копейка
+        Decimal('0.99'),  # 99 копеек
+        Decimal('1.00'),  # 1 рубль
+        Decimal('1.01'),  # 1 рубль 1 копейка
+        Decimal('99.99'),  # 99 рублей 99 копеек
+        Decimal('100.00'),  # 100 рублей
+        Decimal('100.01'),  # 100 рублей 1 копейка
     ]
 
     start_time = time.time()
 
     for i, amount in enumerate(precision_amounts, 1):
         # Добавляем уникальный timestamp для избежания дублирования
-        unique_tx_id = f"precise-tx-{i}-{int(time.time() * 1000000)}"
+        unique_tx_id = f'precise-tx-{i}-{int(time.time() * 1000000)}'
         webhook_data = {
-            "transaction_id": unique_tx_id,
-            "user_id": user_data["id"],
-            "account_id": account_id,
-            "amount": float(amount),
+            'transaction_id': unique_tx_id,
+            'user_id': user_data['id'],
+            'account_id': account_id,
+            'amount': float(amount),
         }
-        webhook_data["signature"] = compute_webhook_signature(
+        webhook_data['signature'] = compute_webhook_signature(
             webhook_data, settings.webhook_secret_key
         )
 
-        resp = await performance_client.post(
-            "/api/v1/webhook/payment", json=webhook_data
-        )
+        resp = await performance_client.post('/api/v1/webhook/payment', json=webhook_data)
         assert resp.status_code == status.HTTP_201_CREATED
 
     end_time = time.time()
     processing_time = end_time - start_time
 
     # Проверяем итоговый баланс (PostgreSQL должен точно посчитать)
-    user_token = make_performance_token(user_data["id"])
+    user_token = make_performance_token(user_data['id'])
     resp = await performance_client.get(
-        f"/api/v1/users/{user_data['id']}/accounts",
-        headers={"Authorization": f"Bearer {user_token}"},
+        f'/api/v1/users/{user_data["id"]}/accounts',
+        headers={'Authorization': f'Bearer {user_token}'},
     )
     assert resp.status_code == status.HTTP_200_OK
     accounts = resp.json()
@@ -987,23 +929,21 @@ async def test_decimal_precision_postgresql(
 
     # Проверяем что все платежи создались
     resp = await performance_client.get(
-        "/api/v1/payments?limit=200", headers={"Authorization": f"Bearer {user_token}"}
+        '/api/v1/payments?limit=200', headers={'Authorization': f'Bearer {user_token}'}
     )
     assert resp.status_code == status.HTTP_200_OK
     payments = resp.json()
     assert len(payments) == len(precision_amounts), (
-        f"Ожидается {len(precision_amounts)} платежей, получено {len(payments)}"
+        f'Ожидается {len(precision_amounts)} платежей, получено {len(payments)}'
     )
 
     # Проверяем итоговый баланс
-    final_balance = sum(Decimal(payment["amount"]) for payment in payments)
+    final_balance = sum(Decimal(payment['amount']) for payment in payments)
     expected_balance = sum(precision_amounts)
     assert final_balance == expected_balance, (
-        f"Ожидаемый баланс {expected_balance}, получен {final_balance}"
+        f'Ожидаемый баланс {expected_balance}, получен {final_balance}'
     )
 
     # Проверяем производительность
     payments_per_second = len(precision_amounts) / processing_time
-    assert payments_per_second > 1, (
-        f"Только {payments_per_second:.1f} платежей в секунду"
-    )
+    assert payments_per_second > 1, f'Только {payments_per_second:.1f} платежей в секунду'
