@@ -88,11 +88,12 @@ flowchart TD
   U[Make Commands] --> V[Local/Docker Workflows]
   W[Scripts] --> X[Auto-migrations & Seeding]
 
-  %% Стили
-  classDef app fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-  classDef test fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-  classDef db fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-  classDef tool fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    %% Стили
+  classDef app fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000000
+  classDef test fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000000
+  classDef db fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000000
+  classDef tool fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000000
+  classDef http fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#ffffff
 
   class A,B,C,D,F,G,H app
   class I,J,K,L,M,N,O,P,Q,R,S,T test
