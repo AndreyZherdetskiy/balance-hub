@@ -57,6 +57,7 @@
 
 ```mermaid
 flowchart TD
+  %% Основной поток приложения
   A[Client] -->|HTTP| B[FastAPI Routers]
   B --> C[Services]
   C --> D[CRUD Layer]
@@ -64,18 +65,39 @@ flowchart TD
   B --> F[Auth/JWT]
   C --> G[Alembic Migrations]
   C --> H[Validators]
-  I[Tests] --> J[364 Tests]
-  J --> K[97.58% Coverage]
-  I --> L[Unit Tests - SQLite]
-  I --> M[Integration Tests - SQLite]
-  I --> N[Performance Tests - PostgreSQL]
-  N --> O[pytest-postgresql]
-  N --> P[11 Performance Tests]
-  Q[Make Commands] --> R[Local/Docker Workflows]
-  S[Scripts] --> T[Auto-migrations & Seeding]
-  U[Fixtures] --> V[conftest.py]
-  V --> W[SQLite Fixtures]
-  V --> X[PostgreSQL Fixtures]
+
+  %% Система тестирования
+  I[Testing System] --> J[364 Tests - 97.58% Coverage]
+  I --> K[Test Fixtures & Config]
+  K --> L[conftest.py]
+  L --> M[SQLite Fixtures]
+  L --> N[PostgreSQL Fixtures]
+
+  %% Типы тестов
+  J --> O[Unit Tests]
+  J --> P[Integration Tests]
+  J --> Q[Performance Tests]
+
+  %% Технологии тестирования
+  O --> R[SQLite In-Memory]
+  P --> R
+  Q --> S[pytest-postgresql]
+  Q --> T[11 Performance Tests]
+
+  %% Автоматизация и инструменты
+  U[Make Commands] --> V[Local/Docker Workflows]
+  W[Scripts] --> X[Auto-migrations & Seeding]
+
+  %% Стили
+  classDef app fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+  classDef test fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+  classDef db fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+  classDef tool fill:#fff3e0,stroke:#e65100,stroke-width:2px
+
+  class A,B,C,D,F,G,H app
+  class I,J,K,L,M,N,O,P,Q,R,S,T test
+  class E db
+  class U,V,W,X tool
 ```
 
 ## Технологический стек
